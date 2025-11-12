@@ -26,7 +26,7 @@ namespace unipos_basic_backend.src.Configs
                 })
                 .AddJwtBearer(op =>
                 {
-                    op.RequireHttpsMetadata = true;
+                    op.RequireHttpsMetadata = false;
                     op.SaveToken = true;
                     op.TokenValidationParameters = new TokenValidationParameters
                     {

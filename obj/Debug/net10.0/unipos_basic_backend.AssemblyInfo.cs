@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("unipos_basic_backend")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+eca1243104de79addd7dd5b80fced4715517f7ca")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f835f4003df1191ad31487844295645ce129cde2")]
 [assembly: System.Reflection.AssemblyProductAttribute("unipos_basic_backend")]
 [assembly: System.Reflection.AssemblyTitleAttribute("unipos_basic_backend")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

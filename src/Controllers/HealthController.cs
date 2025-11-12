@@ -6,16 +6,10 @@ namespace unipos_basic_backend.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class HealthController : ControllerBase
+    public class HealthController (PostgresDb postgresDb, ILogger<HealthController> logger) : ControllerBase
     {
-        private readonly PostgresDb _postgresDb;
-        private readonly ILogger<HealthController> _logger;
-
-        public HealthController(PostgresDb postgresDb, ILogger<HealthController> logger)
-        {
-            _postgresDb = postgresDb ?? throw new ArgumentNullException(nameof(postgresDb));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
+        private readonly PostgresDb _postgresDb = postgresDb;
+        private readonly ILogger<HealthController> _logger = logger;
 
         /// <summary>
         /// Checks if the application can connect to PostgreSQL.

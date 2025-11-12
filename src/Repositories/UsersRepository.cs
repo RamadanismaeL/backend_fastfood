@@ -6,18 +6,11 @@ using unipos_basic_backend.src.Interfaces;
 
 namespace unipos_basic_backend.src.Repositories
 {
-    public sealed class UsersRepository : IUsersRepository
+    public sealed class UsersRepository (PostgresDb db, IHttpContextAccessor httpContextAcc, ILogger<UsersRepository> logger) : IUsersRepository
     {
-        private readonly PostgresDb _db;
-        private readonly IHttpContextAccessor _httpContextAcc;
-        private readonly ILogger<UsersRepository> _logger;
-
-        public UsersRepository(PostgresDb db, IHttpContextAccessor httpContextAcc, ILogger<UsersRepository> logger)
-        {
-            _db = db;
-            _httpContextAcc = httpContextAcc;
-            _logger = logger;
-        }
+        private readonly PostgresDb _db = db;
+        private readonly IHttpContextAccessor _httpContextAcc = httpContextAcc;
+        private readonly ILogger<UsersRepository> _logger = logger;
 
         public async Task<IEnumerable<UsersListDTO>> GetAllAsync()
         {
@@ -26,7 +19,7 @@ namespace unipos_basic_backend.src.Repositories
             FROM tbUsers
             ORDER BY created_at DESC";
 
-            using var conn = _db.CreateConnection();
+            await using var conn = _db.CreateConnection();
             return (await conn.QueryAsync<UsersListDTO>(sql)).AsList();
         }
 
@@ -34,7 +27,7 @@ namespace unipos_basic_backend.src.Repositories
         {
             try
             {
-                using var conn = _db.CreateConnection();
+                await using var conn = _db.CreateConnection();
 
                 const string checkSql = @"SELECT 1 FROM tbUsers WHERE username = @Username";
                 var userExists = await conn.QueryFirstOrDefaultAsync<int>(checkSql, new { user.Username });
@@ -49,18 +42,16 @@ namespace unipos_basic_backend.src.Repositories
                     imageUrl = $"{request.Scheme}://{request.Host}/images/{fileName}";
                 }
 
-                var newID = Guid.NewGuid();
-                var passwordHash = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
                 const string insertSql = @"INSERT INTO tbUsers (id, username, phone_number, roles, password_hash, images) VALUES (@Id, @Username, @PhoneNumber, @Roles, @Password, @Image)";
 
                 var parameters = new
                 {
-                    Id = newID,
+                    Id = Guid.NewGuid(),
                     user.Username,
                     user.PhoneNumber,
                     user.Roles,
-                    user.Password,
+                    Password = BCrypt.Net.BCrypt.HashPassword(user.Password),
                     Image = imageUrl
                 };
 
@@ -89,12 +80,12 @@ namespace unipos_basic_backend.src.Repositories
         {
             try
             {
-                using var conn = _db.CreateConnection();
+                await using var conn = _db.CreateConnection();
 
-                const string getImageSql = "SELECT images FROM tbUsers WHERE id = @Id";
+                const string getImageSql = @"SELECT images FROM tbUsers WHERE id = @Id";
                 var imagePath = await conn.QueryFirstOrDefaultAsync<string>(getImageSql, new { Id = id });
 
-                const string deleteSql = "DELETE FROM tbUsers WHERE id = @id";                
+                const string deleteSql = @"DELETE FROM tbUsers WHERE id = @id";                
                 var affectedRows = await conn.ExecuteAsync(deleteSql, new { Id = id });
 
                 if (affectedRows == 0) return new ResponseDTO { IsSuccess = false, Message = $"No user found with ID: {id}" };

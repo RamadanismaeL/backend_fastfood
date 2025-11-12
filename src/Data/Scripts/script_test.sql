@@ -1,6 +1,8 @@
 SELECT 1;
 
 SELECT * FROM tbUsers;
+SELECT * FROM tbRefreshToken;
+
 DROP TABLE tbUsers;
 
 SELECT id, username, phone_number, roles, images, is_active, created_at, updated_at FROM tbUsers;

@@ -6,16 +6,9 @@ namespace unipos_basic_backend.src.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class UsersController : ControllerBase, IUsersController
+    public class UsersController (IUsersRepository usersRepository) : ControllerBase, IUsersController
     {
-        private readonly IUsersRepository _usersRepository;
-        private readonly ILogger<UsersController> _logger;
-
-        public UsersController(IUsersRepository usersRepository, ILogger<UsersController> logger)
-        {
-            _usersRepository = usersRepository;
-            _logger = logger;
-        }
+        private readonly IUsersRepository _usersRepository = usersRepository;
 
         [HttpGet("v1/get-all")]
         public async Task<ActionResult<IEnumerable<UsersListDTO>>> GetAllAsync()
