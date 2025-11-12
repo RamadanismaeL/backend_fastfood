@@ -1,5 +1,4 @@
 using Dapper;
-using Npgsql;
 using unipos_basic_backend.src.Configs;
 using unipos_basic_backend.src.Data;
 using unipos_basic_backend.src.DTOs;
