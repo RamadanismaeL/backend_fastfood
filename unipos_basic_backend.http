@@ -1,0 +1,6 @@
+@unipos_basic_backend_HostAddress = http://localhost:5063
+
+GET {{unipos_basic_backend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

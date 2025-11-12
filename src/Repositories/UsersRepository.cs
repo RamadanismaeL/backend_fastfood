@@ -1,0 +1,143 @@
+using Dapper;
+using Npgsql;
+using unipos_basic_backend.src.Configs;
+using unipos_basic_backend.src.Data;
+using unipos_basic_backend.src.DTOs;
+using unipos_basic_backend.src.Interfaces;
+
+namespace unipos_basic_backend.src.Repositories
+{
+    public sealed class UsersRepository : IUsersRepository
+    {
+        private readonly PostgresDb _db;
+        private readonly IHttpContextAccessor _httpContextAcc;
+        private readonly ILogger<UsersRepository> _logger;
+
+        public UsersRepository(PostgresDb db, IHttpContextAccessor httpContextAcc, ILogger<UsersRepository> logger)
+        {
+            _db = db;
+            _httpContextAcc = httpContextAcc;
+            _logger = logger;
+        }
+
+        public async Task<IEnumerable<UsersListDTO>> GetAllAsync()
+        {
+            const string sql = @"
+            SELECT id, username, phone_number AS phoneNumber, roles, images AS image, is_active AS is_Active, created_at AS createdAt, updated_at as updatedAt
+            FROM tbUsers
+            ORDER BY created_at DESC";
+
+            using var conn = _db.CreateConnection();
+            return (await conn.QueryAsync<UsersListDTO>(sql)).AsList();
+        }
+
+        public async Task<ResponseDTO> CreateAsync(UsersCreateDTO user)
+        {
+            try
+            {
+                using var conn = _db.CreateConnection();
+
+                const string checkSql = @"SELECT 1 FROM tbUsers WHERE username = @Username";
+                var userExists = await conn.QueryFirstOrDefaultAsync<int>(checkSql, new { user.Username });
+
+                if (userExists == 1) return new ResponseDTO { IsSuccess = false, Message = "Username already exists." };
+
+                var imageUrl = string.Empty;
+                if (user.Image is not null && user.Image.Length > 0)
+                {
+                    var fileName = await FileUploadConfig.UploadFile(user.Image);
+                    var request = _httpContextAcc.HttpContext!.Request;
+                    imageUrl = $"{request.Scheme}://{request.Host}/images/{fileName}";
+                }
+
+                var newID = Guid.NewGuid();
+                var passwordHash = BCrypt.Net.BCrypt.HashPassword(user.Password);
+
+                const string insertSql = @"INSERT INTO tbUsers (id, username, phone_number, roles, password_hash, images) VALUES (@Id, @Username, @PhoneNumber, @Roles, @Password, @Image)";
+
+                var parameters = new
+                {
+                    Id = newID,
+                    user.Username,
+                    user.PhoneNumber,
+                    user.Roles,
+                    user.Password,
+                    Image = imageUrl
+                };
+
+                var result = await conn.ExecuteAsync(insertSql, parameters);
+
+                if (result == 0) return new ResponseDTO { IsSuccess = false, Message = "Failed to create user. Please try again." };
+
+                return new ResponseDTO
+                {
+                    IsSuccess = true,
+                    Message = "User created successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, " - Failed to create user. Please try again.");
+                return new ResponseDTO
+                {
+                    IsSuccess = false,
+                    Message = "Failed to create user. Please try again."
+                };
+            }
+        }
+
+        public async Task<ResponseDTO> DeleteAsync(Guid id)
+        {
+            try
+            {
+                using var conn = _db.CreateConnection();
+
+                const string getImageSql = "SELECT images FROM tbUsers WHERE id = @Id";
+                var imagePath = await conn.QueryFirstOrDefaultAsync<string>(getImageSql, new { Id = id });
+
+                const string deleteSql = "DELETE FROM tbUsers WHERE id = @id";                
+                var affectedRows = await conn.ExecuteAsync(deleteSql, new { Id = id });
+
+                if (affectedRows == 0) return new ResponseDTO { IsSuccess = false, Message = $"No user found with ID: {id}" };
+
+                if (!string.IsNullOrEmpty(imagePath))
+                {
+                    try
+                    {
+                        var oldImageName = Path.GetFileName(new Uri(imagePath).LocalPath);
+                        if (!string.IsNullOrEmpty(oldImageName))
+                        {
+                            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+
+                            var oldImagePath = Path.Combine(uploadsFolder, oldImageName);
+
+                            if (System.IO.File.Exists(oldImagePath))
+                            {
+                                System.IO.File.Delete(oldImagePath);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error deleting image file.");
+                    }
+                }
+
+                return new ResponseDTO
+                {
+                    IsSuccess = true,
+                    Message = $"User deleted successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deleting user with ID: {id}");
+                return new ResponseDTO
+                {
+                    IsSuccess = false,
+                    Message = $"Error deleting user with ID: {id}"
+                };
+            }
+        }
+    }
+}
