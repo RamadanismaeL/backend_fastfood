@@ -13,8 +13,6 @@ namespace unipos_basic_backend.src.Configs
         private const string ContactName = "Ramadan Ismael";
         private const string ContactEmail = "ramadan.ismael02@gmail.com";
         private const string ContactUrl = "https://github.com/RamadanisameL";
-        private const string TermsUrl = "https://unipos.app/terms";
-        private const string SchemeDescription = "Enter JWT 'Bearer {token}' to access this API";
 
         public static void AddSwaggerConfiguration(this IServiceCollection service)
         {
@@ -32,28 +30,62 @@ namespace unipos_basic_backend.src.Configs
                 Title = ApiTitle,
                 Version = ApiVersion,
                 Description = ApiDescription,
+                TermsOfService = new Uri("http://tempuri.org/terms"),
                 Contact = new OpenApiContact
                 {
                     Name = ContactName,
                     Email = ContactEmail,
                     Url = new Uri(ContactUrl)
+                },
+                License = new OpenApiLicense
+                {
+                    Name = "Apache 2.0",
+                    Url = new Uri("https://www.apache.org/licenses/LICENSE-2.0.html")
                 }
             });
         }
 
         private static void ConfigureJWTAuthentication(SwaggerGenOptions op)
         {
-            var securityScheme = new OpenApiSecurityScheme
+
+            op.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
             {
                 Name = "JWT Authorization",
-                Type = SecuritySchemeType.Http,
-                Scheme = "Bearer",
-                BearerFormat = "JWT",
+                Description = "Enter JWT 'Bearer {token}' to access this API",
                 In = ParameterLocation.Header,
-                Description = SchemeDescription
-            };
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT"                
+            });
 
-            op.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, securityScheme);
+            op.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+            {
+                [new OpenApiSecuritySchemeReference("bearer", document)] = []
+            });
+
+            /*
+            options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
+            {
+                Type = SecuritySchemeType.OAuth2,
+                Flows = new OpenApiOAuthFlows
+                {
+                    Implicit = new OpenApiOAuthFlow
+                    {
+                        AuthorizationUrl = new Uri("/auth-server/connect/authorize", UriKind.Relative),
+                        Scopes = new Dictionary<string, string>
+                        {
+                            ["readAccess"] = "Access read operations",
+                            ["writeAccess"] = "Access write operations"
+                        }
+                    }
+                }
+            });
+
+            options.AddSecurityRequirement((document) => new OpenApiSecurityRequirement()
+            {
+                [new OpenApiSecuritySchemeReference("oauth2", document)] = ["readAccess", "writeAccess"]
+            });
+            */
         }
 
         public static void UseSwaggerConfiguration(this IApplicationBuilder app)

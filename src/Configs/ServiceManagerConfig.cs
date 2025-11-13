@@ -85,7 +85,7 @@ namespace unipos_basic_backend.src.Configs
                     throw new InvalidOperationException("JWTSettings:validAudience is missing in configuration.");
                 service.AddCors(op =>
                 {
-                    op.AddPolicy("unipos_fastfood",
+                    op.AddPolicy("CorsPolicy",
                     c =>
                     {
                         c.WithOrigins(audience, "file://")

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "Cueeh4FXviE=",
+  "dgSpecHash": "l6fzn7jgOJA=",
   "success": true,
   "projectFilePath": "/home/ramadan/Documents/Projects/FastFood/unipos_basic_backend/unipos_basic_backend.csproj",
   "expectedPackageFiles": [
@@ -22,10 +22,10 @@
     "/home/ramadan/.nuget/packages/npgsql/9.0.4/npgsql.9.0.4.nupkg.sha512",
     "/home/ramadan/.nuget/packages/polly/8.6.4/polly.8.6.4.nupkg.sha512",
     "/home/ramadan/.nuget/packages/polly.core/8.6.4/polly.core.8.6.4.nupkg.sha512",
-    "/home/ramadan/.nuget/packages/swashbuckle.aspnetcore/10.0.0/swashbuckle.aspnetcore.10.0.0.nupkg.sha512",
-    "/home/ramadan/.nuget/packages/swashbuckle.aspnetcore.swagger/10.0.0/swashbuckle.aspnetcore.swagger.10.0.0.nupkg.sha512",
-    "/home/ramadan/.nuget/packages/swashbuckle.aspnetcore.swaggergen/10.0.0/swashbuckle.aspnetcore.swaggergen.10.0.0.nupkg.sha512",
-    "/home/ramadan/.nuget/packages/swashbuckle.aspnetcore.swaggerui/10.0.0/swashbuckle.aspnetcore.swaggerui.10.0.0.nupkg.sha512",
+    "/home/ramadan/.nuget/packages/swashbuckle.aspnetcore/10.0.1/swashbuckle.aspnetcore.10.0.1.nupkg.sha512",
+    "/home/ramadan/.nuget/packages/swashbuckle.aspnetcore.swagger/10.0.1/swashbuckle.aspnetcore.swagger.10.0.1.nupkg.sha512",
+    "/home/ramadan/.nuget/packages/swashbuckle.aspnetcore.swaggergen/10.0.1/swashbuckle.aspnetcore.swaggergen.10.0.1.nupkg.sha512",
+    "/home/ramadan/.nuget/packages/swashbuckle.aspnetcore.swaggerui/10.0.1/swashbuckle.aspnetcore.swaggerui.10.0.1.nupkg.sha512",
     "/home/ramadan/.nuget/packages/system.identitymodel.tokens.jwt/8.0.1/system.identitymodel.tokens.jwt.8.0.1.nupkg.sha512"
   ],
   "logs": []
