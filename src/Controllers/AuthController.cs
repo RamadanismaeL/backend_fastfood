@@ -23,7 +23,7 @@ namespace unipos_basic_backend.src.Controllers
             try
             {
                 var user = await _authRepository.GetUserByUsername(authRequest.Username);
-                if (user is null || !BCrypt.Net.BCrypt.Verify(authRequest.Password, user.Password) || user.Is_Active == false)
+                if (user is null || string.IsNullOrEmpty(user.Username) || !BCrypt.Net.BCrypt.Verify(authRequest.Password, user.Password) || user.Is_Active == false)
                 {
                     return Unauthorized(new AuthResponseDTO { IsSuccess = false, Message = "Invalid credentials." });
                 }
@@ -31,7 +31,7 @@ namespace unipos_basic_backend.src.Controllers
                 var accessToken = _authRepository.GenerateAccessToken(user);
                 var refreshToken = await _authRepository.GenerateRefreshToken(user.Id);
 
-                SetRefreshTokenCookie(refreshToken);
+                SetRefreshTokenCookie(refreshToken);                
 
                 return Ok(new AuthResponseDTO
                 {
@@ -62,9 +62,9 @@ namespace unipos_basic_backend.src.Controllers
                 {
                     Response.Cookies.Delete("refreshToken", GetSecureCookieOptions());
                     return Unauthorized(new ResponseDTO { IsSuccess = false, Message = "Invalid or expired refresh token." });
-                }
+                }                
 
-                var user = await _authRepository.GetUserByUsername(tokenRecord.UserId.ToString());
+                var user = await _authRepository.GetUserById(tokenRecord.UserId);
                 if (user is null) return Unauthorized();
 
                 var newAccessToken = _authRepository.GenerateAccessToken(user);
@@ -120,12 +120,40 @@ namespace unipos_basic_backend.src.Controllers
             }
         }
 
+        [HttpGet("v1/check-session")]
+        [AllowAnonymous]
+        public async Task<IActionResult> CheckSession()
+        {
+            try
+            {
+                var refreshToken = Request.Cookies["refreshToken"];
+                if (string.IsNullOrEmpty(refreshToken)) return Ok(new AuthCheckSessionDTO { ServerOk = true, Is_LoggedIn = false });
+
+                var tokenRecord = await _authRepository.GetValidRefreshToken(refreshToken);
+                if (tokenRecord is null) return Ok(new AuthCheckSessionDTO { ServerOk = true, Is_LoggedIn = false });
+
+                var user = await _authRepository.GetUsernameById(tokenRecord.UserId);
+                if (user is null) return Ok(new AuthCheckSessionDTO { ServerOk = true, Is_LoggedIn = false });
+                
+                return Ok(new AuthCheckSessionDTO
+                {
+                    ServerOk = true,
+                    Is_LoggedIn = true,
+                    Username = user
+                });
+            }
+            catch
+            {
+                return StatusCode(500, new { serverOk = false });
+            }
+        }
+
         private void SetRefreshTokenCookie(string token)
         {
             Response.Cookies.Append("refreshToken", token, GetSecureCookieOptions());
         }
 
-        private CookieOptions GetSecureCookieOptions()
+        private static CookieOptions GetSecureCookieOptions()
         {
             return new CookieOptions
             {

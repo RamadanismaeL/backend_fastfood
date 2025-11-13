@@ -8,5 +8,6 @@ namespace unipos_basic_backend.src.Interfaces
         Task<IActionResult> SignIn([FromBody] AuthRequestDTO authRequest);
         Task<IActionResult> RefreshToken();
         Task<IActionResult> SignOut();
+        Task<IActionResult> CheckSession();
     }
 }

@@ -5,6 +5,8 @@ namespace unipos_basic_backend.src.Interfaces
     public interface IAuthRepository
     {
         Task<AuthUsersDTO?> GetUserByUsername(string username);
+        Task<AuthUsersDTO?> GetUserById(Guid userId);
+        Task<string?> GetUsernameById(Guid userId);
         Task<RefreshTokenDTO?> GetValidRefreshToken(string token);
         Task SaveRefreshToken(RefreshTokenDTO refreshToken);
         Task RevokeRefreshToken(string token);

@@ -10,25 +10,40 @@ using unipos_basic_backend.src.Interfaces;
 
 namespace unipos_basic_backend.src.Repositories
 {
-    public sealed class AuthRepository (PostgresDb db, IConfiguration config, ILogger<AuthRepository> logger) : IAuthRepository
+    public sealed class AuthRepository (PostgresDb db, IConfiguration config) : IAuthRepository
     {
         private readonly PostgresDb _db = db;
         private readonly IConfiguration _config = config;
-        private readonly ILogger<AuthRepository> _logger = logger;
 
         public async Task<AuthUsersDTO?> GetUserByUsername(string username)
         {
             await using var conn = _db.CreateConnection();
 
-            const string sql = @"SELECT id, username, password_hash AS Password, roles, is_active FROM tbUsers WHERE username = @Username";
+            const string sql = @"SELECT id, username, roles, password_hash AS Password, is_active AS IS_Active FROM tbUsers WHERE username = @Username";
             return await conn.QueryFirstOrDefaultAsync<AuthUsersDTO>(sql, new { Username = username });
+        }
+
+        public async Task<AuthUsersDTO?> GetUserById(Guid userId)
+        {
+            await using var conn = _db.CreateConnection();
+
+            const string sql = @"SELECT id, username, roles, password_hash AS Password, is_active AS IS_Active FROM tbUsers WHERE id = @Id";
+            return await conn.QueryFirstOrDefaultAsync<AuthUsersDTO>(sql, new { Id = userId });
+        }
+
+        public async Task<string?> GetUsernameById(Guid userId)
+        {
+            await using var conn = _db.CreateConnection();
+
+            const string sql = @"SELECT username FROM tbUsers WHERE id = @Id LIMIT 1";
+            return await conn.QueryFirstOrDefaultAsync<string>(sql, new { Id = userId });
         }
 
         public async Task<RefreshTokenDTO?> GetValidRefreshToken(string token)
         {
             await using var conn = _db.CreateConnection();
 
-            const string sql = @"SELECT * FROM tbRefreshToken WHERE token = @Token AND revoked_at IS NULL AND expires_at > NOW()";
+            const string sql = @"SELECT id AS Id, user_id AS UserId, token AS Token, expires_at AS ExpiresAt, created_at AS CreatedAt, revoked_at AS RevokedAt FROM tbRefreshToken WHERE token = @Token AND revoked_at IS NULL AND expires_at > NOW()";
             return await conn.QueryFirstOrDefaultAsync<RefreshTokenDTO>(sql, new { Token = token });
         }
 
