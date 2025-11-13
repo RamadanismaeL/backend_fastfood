@@ -16,7 +16,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerConfiguration();
 }
 
-//app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 app.UseWebSockets();
 app.UseDefaultFiles();
 string[] folders = ["uploads", "images"];
@@ -34,8 +34,10 @@ foreach (var folder in folders)
 }
 
 app.UseCors("unipos_fastfood");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();

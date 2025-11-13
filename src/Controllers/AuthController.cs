@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using unipos_basic_backend.src.DTOs;
 using unipos_basic_backend.src.Interfaces;
 
@@ -13,6 +14,7 @@ namespace unipos_basic_backend.src.Controllers
         private readonly ILogger<AuthController> _logger = logger;
 
         [HttpPost("v1/sign-in")]
+        [EnableRateLimiting("signin")]
         [AllowAnonymous]
         public async Task<IActionResult> SignIn([FromBody] AuthRequestDTO authRequest)
         {
