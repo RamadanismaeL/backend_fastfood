@@ -122,7 +122,7 @@ namespace unipos_basic_backend.src.Controllers
 
         [HttpGet("v1/check-session")]
         [AllowAnonymous]
-        public async Task<IActionResult> CheckSession()
+        public async Task<ActionResult<IEnumerable<AuthCheckSessionDTO>>> CheckSession()
         {
             try
             {
@@ -159,9 +159,9 @@ namespace unipos_basic_backend.src.Controllers
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.Lax,
+                SameSite = SameSiteMode.None,
                 Expires = DateTimeOffset.UtcNow.AddDays(7),
-                Path = "api/auth/refresh"
+                Path = "/"
             };
         }
     }
