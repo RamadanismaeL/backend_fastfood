@@ -26,7 +26,7 @@ namespace unipos_basic_backend.src.Configs
                 })
                 .AddJwtBearer(op =>
                 {
-                    op.RequireHttpsMetadata = true;
+                    op.RequireHttpsMetadata = false;
                     op.SaveToken = true;
                     op.TokenValidationParameters = new TokenValidationParameters
                     {
@@ -45,6 +45,28 @@ namespace unipos_basic_backend.src.Configs
                         ValidateIssuerSigningKey = true,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecurityKey)),
                         RequireSignedTokens = true
+                    };
+
+                    op.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            // Priority 1: Cookie (frontend)
+                            if (context.Request.Cookies.TryGetValue("accessToken", out var token) && !string.IsNullOrEmpty(token))
+                            {
+                                context.Token = token;
+                                return Task.CompletedTask;
+                            }
+
+                            // Priority 2: Header (Postman)
+                            var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
+                            if (authHeader?.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) == true)
+                            {
+                                context.Token = authHeader["Bearer ".Length..].Trim();
+                            }
+
+                            return Task.CompletedTask;
+                        }
                     };
                 });
             }

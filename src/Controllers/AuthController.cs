@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using unipos_basic_backend.src.DTOs;
@@ -29,6 +30,7 @@ namespace unipos_basic_backend.src.Controllers
                 var accessToken = _authRepository.GenerateAccessToken(user);
                 var refreshToken = await _authRepository.GenerateRefreshToken(user.Id);
 
+                SetAccessTokenCookie(accessToken);
                 SetRefreshTokenCookie(refreshToken);                
 
                 return Ok(new AuthResponseDTO
@@ -68,6 +70,7 @@ namespace unipos_basic_backend.src.Controllers
                 var newRefreshToken = await _authRepository.GenerateRefreshToken(user.Id);
 
                 await _authRepository.RevokeRefreshToken(refreshToken);
+                SetAccessTokenCookie(newAccessToken);
                 SetRefreshTokenCookie(newRefreshToken);
 
                 return Ok(new AuthResponseDTO
@@ -89,6 +92,7 @@ namespace unipos_basic_backend.src.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost("v1/sign-out")]
         public new async Task<IActionResult> SignOut()
         {
@@ -97,6 +101,7 @@ namespace unipos_basic_backend.src.Controllers
                 var refreshToken = Request.Cookies["refreshToken"];
                 if (!string.IsNullOrEmpty(refreshToken)) await _authRepository.RevokeRefreshToken(refreshToken);
 
+                Response.Cookies.Delete("accessToken", GetAccessTokenCookieOptions());
                 Response.Cookies.Delete("refreshToken", GetSecureCookieOptions());
 
                 return Ok(new ResponseDTO
@@ -143,9 +148,26 @@ namespace unipos_basic_backend.src.Controllers
             }
         }
 
+        private void SetAccessTokenCookie(string token)
+        {
+            Response.Cookies.Append("accessToken", token, GetAccessTokenCookieOptions());
+        }
+
         private void SetRefreshTokenCookie(string token)
         {
             Response.Cookies.Append("refreshToken", token, GetSecureCookieOptions());
+        }
+
+        private static CookieOptions GetAccessTokenCookieOptions()
+        {
+            return new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,    // Lax is safer than None
+                Expires = DateTimeOffset.UtcNow.AddMinutes(15),
+                Path = "/"                      // Sent on all requests
+            };
         }
 
         private static CookieOptions GetSecureCookieOptions()
