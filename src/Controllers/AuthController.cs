@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using unipos_basic_backend.src.DTOs;
@@ -8,14 +7,13 @@ namespace unipos_basic_backend.src.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController (IAuthRepository authRepository, ILogger<AuthController> logger) : ControllerBase, IAuthController
+    public sealed class AuthController (IAuthRepository authRepository, ILogger<AuthController> logger) : ControllerBase, IAuthController
     {
         private readonly IAuthRepository _authRepository = authRepository;
         private readonly ILogger<AuthController> _logger = logger;
 
         [HttpPost("v1/sign-in")]
         [EnableRateLimiting("signin")]
-        [AllowAnonymous]
         public async Task<IActionResult> SignIn([FromBody] AuthRequestDTO authRequest)
         {
             if (!ModelState.IsValid) return BadRequest(new AuthResponseDTO { IsSuccess = false, Message = "Invalid input." });
@@ -49,7 +47,6 @@ namespace unipos_basic_backend.src.Controllers
         }
 
         [HttpPost("v1/refresh")]
-        [AllowAnonymous]
         public async Task<IActionResult> RefreshToken()
         {
             try
@@ -93,7 +90,6 @@ namespace unipos_basic_backend.src.Controllers
         }
 
         [HttpPost("v1/sign-out")]
-        [Authorize]
         public new async Task<IActionResult> SignOut()
         {
             try
@@ -121,7 +117,6 @@ namespace unipos_basic_backend.src.Controllers
         }
 
         [HttpGet("v1/check-session")]
-        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<AuthCheckSessionDTO>>> CheckSession()
         {
             try

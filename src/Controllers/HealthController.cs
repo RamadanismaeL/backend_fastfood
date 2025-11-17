@@ -6,7 +6,7 @@ namespace unipos_basic_backend.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class HealthController (PostgresDb postgresDb, ILogger<HealthController> logger) : ControllerBase
+    public sealed class HealthController (PostgresDb postgresDb, ILogger<HealthController> logger) : ControllerBase
     {
         private readonly PostgresDb _postgresDb = postgresDb;
         private readonly ILogger<HealthController> _logger = logger;

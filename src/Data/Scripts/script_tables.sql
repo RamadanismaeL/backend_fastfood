@@ -19,5 +19,4 @@ CREATE TABLE IF NOT EXISTS tbRefreshToken
     expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     revoked_at TIMESTAMPTZ
-
 );

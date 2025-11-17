@@ -6,7 +6,7 @@ namespace unipos_basic_backend.src.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class UsersController (IUsersRepository usersRepository) : ControllerBase, IUsersController
+    public sealed class UsersController (IUsersRepository usersRepository) : ControllerBase, IUsersController
     {
         private readonly IUsersRepository _usersRepository = usersRepository;
 

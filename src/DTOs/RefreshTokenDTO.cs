@@ -1,6 +1,6 @@
 namespace unipos_basic_backend.src.DTOs
 {
-    public class RefreshTokenDTO
+    public sealed class RefreshTokenDTO
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }

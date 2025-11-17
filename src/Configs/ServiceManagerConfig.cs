@@ -81,7 +81,6 @@ namespace unipos_basic_backend.src.Configs
                 });
 
                 string? audience = configuration["JWTSettings:validAudience"];
-                logger.LogWarning($"Audience = {audience}");
                 if (string.IsNullOrWhiteSpace(audience))
                     throw new InvalidOperationException("JWTSettings:validAudience is missing in configuration.");
                 service.AddCors(op =>
