@@ -12,8 +12,8 @@ namespace unipos_basic_backend.src.Controllers
         private readonly IAuthRepository _authRepository = authRepository;
         private readonly ILogger<AuthController> _logger = logger;
 
-        [HttpPost("v1/sign-in")]
-        [EnableRateLimiting("signin")]
+        [EnableRateLimiting("SignInPolicy")]
+        [HttpPost("v1/sign-in")]        
         public async Task<IActionResult> SignIn([FromBody] AuthRequestDTO authRequest)
         {
             if (!ModelState.IsValid) return BadRequest(new AuthResponseDTO { IsSuccess = false, Message = "Invalid input." });

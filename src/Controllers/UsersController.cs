@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using unipos_basic_backend.src.DTOs;
 using unipos_basic_backend.src.Interfaces;
 
 namespace unipos_basic_backend.src.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public sealed class UsersController (IUsersRepository usersRepository) : ControllerBase, IUsersController

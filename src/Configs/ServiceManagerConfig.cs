@@ -35,43 +35,53 @@ namespace unipos_basic_backend.src.Configs
                 {
                     // 1. Gloabl: 100 requests in any 60-second window (per user or IP)
                     op.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-                        RateLimitPartition.GetSlidingWindowLimiter(
-                            partitionKey: httpContext.User.Identity?.Name ?? httpContext.Request.Headers.Host.ToString(),
+                    {
+                        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
+
+                        return RateLimitPartition.GetSlidingWindowLimiter(
+                            partitionKey: ip,
                             factory: _ => new SlidingWindowRateLimiterOptions
                             {
-                                PermitLimit = 100,
+                                PermitLimit = 300, //Each IP: 300 req / 60 sec
                                 Window = TimeSpan.FromSeconds(60),
                                 SegmentsPerWindow = 6,
                                 AutoReplenishment = true
                             }
-                        )
-                    );
-
-                    // 2. Login Endpoint: 5 attempts in any 60 seconds
-                    op.AddSlidingWindowLimiter("signin", opt =>
-                    {
-                        opt.PermitLimit = 5;
-                        opt.Window = TimeSpan.FromSeconds(60);
-                        opt.SegmentsPerWindow = 6;
-                        opt.AutoReplenishment = true;
-                        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                        opt.QueueLimit = 0; // No queue -> instant reject
+                        );
                     });
 
-                    // 3. Response: 429 + retry-after
+                    // 2. Login Limit - Per Username (or IP if anonymous)
+                    op.AddPolicy("SignInPolicy", httpContext =>
+                    {
+                        string ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+                        return RateLimitPartition.GetSlidingWindowLimiter(
+                            partitionKey: $"sigin-{ip}",
+                            factory: _ => new SlidingWindowRateLimiterOptions
+                            {
+                                PermitLimit = 5,
+                                Window = TimeSpan.FromSeconds(60),
+                                SegmentsPerWindow = 6,
+                                AutoReplenishment = true,
+                                QueueLimit = 0,
+                                QueueProcessingOrder = QueueProcessingOrder.OldestFirst                                
+                            }
+                        );                        
+                    });
+
+                    // 3. Failed Response Handling
                     op.OnRejected = async (context, token) =>
                     {
                         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                        context.HttpContext.Response.Headers.RetryAfter = "60";
 
                         if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
                         {
                             context.HttpContext.Response.Headers.RetryAfter = retryAfter.TotalSeconds.ToString();
-                            await context.HttpContext.Response.WriteAsync($"Too many requests. Try again in {retryAfter.TotalSeconds:F0} seconds.", token);
+                            await context.HttpContext.Response.WriteAsync($"Too many requests. Retry in {retryAfter.TotalSeconds:F0} seconds.", token);
                         }
                         else
                         {
-                            await context.HttpContext.Response.WriteAsync("Too many requests. Please slow down.", token);
+                            await context.HttpContext.Response.WriteAsync("Too many requests.", token);
                         }
 
                         // Log abuse
