@@ -17,6 +17,7 @@ namespace unipos_basic_backend.src.Configs
             try
             {
                 service.AddOpenApi(); 
+                service.AddSignalR();
                 service.AddEndpointsApiExplorer();
                 service.AddSwaggerConfiguration();
                 service.AddJWTAuthentication(configuration, logger);

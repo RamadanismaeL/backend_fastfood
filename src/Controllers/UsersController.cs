@@ -1,16 +1,19 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using unipos_basic_backend.src.DTOs;
 using unipos_basic_backend.src.Interfaces;
+using unipos_basic_backend.src.Repositories;
 
 namespace unipos_basic_backend.src.Controllers
 {
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
-    public sealed class UsersController (IUsersRepository usersRepository) : ControllerBase, IUsersController
+    public sealed class UsersController (IUsersRepository usersRepository, IHubContext<NotificationHub> hubContext) : ControllerBase, IUsersController
     {
         private readonly IUsersRepository _usersRepository = usersRepository;
+        private readonly IHubContext<NotificationHub> _hubContext = hubContext;
 
         [HttpGet("v1/get-all")]
         public async Task<ActionResult<IEnumerable<UsersListDTO>>> GetAllAsync()
@@ -37,6 +40,8 @@ namespace unipos_basic_backend.src.Controllers
             if (!ModelState.IsValid) return BadRequest(new ResponseDTO { IsSuccess = false, Message = "Invalid data provided." });
 
             var response = await _usersRepository.CreateDeftsAsync(user);
+
+            await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
 
             return response.IsSuccess
                 ? Ok(response)

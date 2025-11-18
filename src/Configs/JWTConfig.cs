@@ -51,6 +51,16 @@ namespace unipos_basic_backend.src.Configs
                     {
                         OnMessageReceived = context =>
                         {
+                            var path = context.Request.Path;
+
+                            // Priority 3: Query string – only for SignalR hub
+                            if (!string.IsNullOrEmpty(context.Request.Query["accessToken"]) &&
+                                path.StartsWithSegments("/notificationHub"))
+                            {
+                                context.Token = context.Request.Query["accessToken"];
+                                return Task.CompletedTask;
+                            }
+
                             // Priority 1: Cookie (frontend)
                             if (context.Request.Cookies.TryGetValue("accessToken", out var token) && !string.IsNullOrEmpty(token))
                             {

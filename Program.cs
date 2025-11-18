@@ -5,6 +5,8 @@
 using unipos_basic_backend.src.Configs;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.HttpOverrides;
+using unipos_basic_backend.src.Repositories;
+using Microsoft.AspNetCore.Http.Connections;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +53,13 @@ foreach (var folder in folders)
         RequestPath = "/" + folder
     });
 }
+
+app.MapHub<NotificationHub>("/notificationHub", op =>
+{
+    op.Transports = HttpTransportType.WebSockets;
+})
+.RequireCors("CorsPolicy")
+.RequireAuthorization();
 
 app.MapControllers();
 
