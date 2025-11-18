@@ -76,6 +76,52 @@ namespace unipos_basic_backend.src.Repositories
             }
         }
 
+        public async Task<ResponseDTO> CreateDeftsAsync(UsersCreateDeftsDTO user)
+        {
+            try
+            {
+                await using var conn = _db.CreateConnection();
+
+                const string checkSql = @"SELECT 1 FROM tbUsers WHERE username = @Username";
+                var userExists = await conn.QueryFirstOrDefaultAsync<int>(checkSql, new { user.Username });
+
+                if (userExists == 1) return new ResponseDTO { IsSuccess = false, Message = "Username already exists." };
+
+                const string insertSql = @"INSERT INTO tbUsers (id, username, phone_number, roles, password_hash, images) VALUES (@Id, @Username, @PhoneNumber, @Roles, @Password, @Image)";
+
+                const string passwordDefault = "123456";
+
+                var parameters = new
+                {
+                    Id = Guid.NewGuid(),
+                    user.Username,
+                    user.PhoneNumber,
+                    Roles = "user",
+                    Password = BCrypt.Net.BCrypt.HashPassword(passwordDefault),
+                    Image = ""
+                };
+
+                var result = await conn.ExecuteAsync(insertSql, parameters);
+
+                if (result == 0) return new ResponseDTO { IsSuccess = false, Message = "Failed to create user. Please try again." };
+
+                return new ResponseDTO
+                {
+                    IsSuccess = true,
+                    Message = "User created successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, " - Failed to create user. Please try again.");
+                return new ResponseDTO
+                {
+                    IsSuccess = false,
+                    Message = "Failed to create user. Please try again."
+                };
+            }
+        }
+
         public async Task<ResponseDTO> DeleteAsync(Guid id)
         {
             try

@@ -6,6 +6,7 @@ namespace unipos_basic_backend.src.Interfaces
     {
         Task<IEnumerable<UsersListDTO>> GetAllAsync();
         Task<ResponseDTO> CreateAsync(UsersCreateDTO user);
+        Task<ResponseDTO> CreateDeftsAsync(UsersCreateDeftsDTO user);
         Task<ResponseDTO> DeleteAsync(Guid id);
     }
 }

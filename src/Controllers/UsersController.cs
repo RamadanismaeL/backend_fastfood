@@ -31,6 +31,18 @@ namespace unipos_basic_backend.src.Controllers
                 : BadRequest(response);
         }
 
+        [HttpPost("v1/defts-create")]
+        public async Task<IActionResult> CreateDeftsAsync([FromBody] UsersCreateDeftsDTO user)
+        {
+            if (!ModelState.IsValid) return BadRequest(new ResponseDTO { IsSuccess = false, Message = "Invalid data provided." });
+
+            var response = await _usersRepository.CreateDeftsAsync(user);
+
+            return response.IsSuccess
+                ? Ok(response)
+                : BadRequest(response);
+        }
+
         [HttpDelete("v1/delete/{id:guid}")]
         public async Task<IActionResult> DeleteAsync(Guid id)
         {

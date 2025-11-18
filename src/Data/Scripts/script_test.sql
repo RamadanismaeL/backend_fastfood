@@ -1,10 +1,10 @@
+DROP TABLE tbUsers;
+DROP TABLE tbrefreshtoken;
+
 SELECT 1;
 
 SELECT * FROM tbUsers;
 SELECT * FROM tbRefreshToken;
-
-DROP TABLE tbUsers;
-DROP TABLE tbrefreshtoken;
 
 SELECT id, username, phone_number, roles, images, is_active, created_at, updated_at FROM tbUsers;
 SELECT username FROM tbUsers WHERE username = 'ramadan';
@@ -13,5 +13,9 @@ SELECT username FROM tbUsers WHERE id = 'f7dda3c8-e1fc-4f0a-89de-e5443f1a8d74';
 SELECT username FROM tbUsers WHERE id = (SELECT user_id FROM tbRefreshToken WHERE id = 'f7dda3c8-e1fc-4f0a-89de-e5443f1a8d74' LIMIT 1);
 SELECT TO_CHAR(created_at, 'DD-MM-YYYY') AS created_date FROM tbusers;
 
-DELETE FROM tbRefreshToken WHERE id = '333d55e0-cadc-4412-9da2-4045aa0c1510';
+INSERT INTO tbUsers(id, username, password_hash) VALUES('333d55e0-cadc-4412-9da2-4045aa0c1510', '_ramadan', '$2a$10$BlY1qAmZZ7x4jEUUfzHb6eQbNaeZBdMHu2zfckU.0av1MhyFMrmrW');
+
+DELETE FROM tbRefreshToken WHERE id = 'c41f251c-1492-4d32-a6be-edd6d3d0bc5d';
 DELETE FROM tbRefreshToken;
+
+DELETE FROM tbusers WHERE id = '80407cfc-99a5-48b5-ac33-4975900f5415';
