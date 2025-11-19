@@ -15,7 +15,7 @@ namespace unipos_basic_backend.src.Repositories
         public async Task<IEnumerable<UsersListDTO>> GetAllAsync()
         {
             const string sql = @"
-            SELECT username, phone_number AS phoneNumber, roles, images AS image, is_active AS is_Active, created_at AS createdAt, updated_at as updatedAt
+            SELECT id, username, phone_number AS phoneNumber, roles, images AS image, is_active AS is_Active, created_at AS createdAt, updated_at as updatedAt
             FROM tbUsers
             ORDER BY created_at DESC";
 
@@ -118,6 +118,80 @@ namespace unipos_basic_backend.src.Repositories
                 {
                     IsSuccess = false,
                     Message = "Failed to create user. Please try again."
+                };
+            }
+        }
+
+        public async Task<ResponseDTO> UpdateAsync(UsersUpdateDTO user)
+        {
+            try
+            {
+                await using var conn = _db.CreateConnection();
+
+                // 1. Check if user exists
+                const string checkSql = @"SELECT 1 FROM tbUsers WHERE id = @Id";
+                var exists = await conn.QueryFirstOrDefaultAsync<int>(checkSql, new { Id = user.Id });
+
+                if (exists != 1)
+                    return new ResponseDTO { IsSuccess = false, Message = "User not found." };
+
+                var updates = new List<string>();
+                var parameters = new DynamicParameters();
+                parameters.Add("@Id", user.Id);
+
+                if (!string.IsNullOrWhiteSpace(user.Username))
+                {
+                    updates.Add("username = @Username");
+                    parameters.Add("@Username", user.Username);
+                }
+
+                if (!string.IsNullOrWhiteSpace(user.PhoneNumber))
+                {
+                    updates.Add("phone_number = @PhoneNumber");
+                    parameters.Add("@PhoneNumber", user.PhoneNumber);
+                }
+
+                if (!string.IsNullOrEmpty(user.Roles))
+                {
+                    updates.Add("roles = @Roles");
+                    parameters.Add("@Roles", user.Roles);
+                }
+
+                updates.Add("is_active = @Is_Active");
+                parameters.Add("@Is_Active", user.Is_Active);
+
+                if (!string.IsNullOrWhiteSpace(user.Password))
+                {
+                    var hashedPassword = BCrypt.Net.BCrypt.HashPassword(user.Password);
+                    updates.Add("password_hash = @PasswordHash");
+                    parameters.Add("@PasswordHash", hashedPassword);
+                }
+
+                updates.Add("updated_at = NOW()");
+
+                if (updates.Count == 1)
+                {
+                    return new ResponseDTO { IsSuccess = true, Message = "No changes detected." };
+                }
+
+                // 3. Build final SQL
+                var sql = $"UPDATE tbUsers SET {string.Join(", ", updates)} WHERE id = @Id";
+
+                var result = await conn.ExecuteAsync(sql, parameters);
+
+                return new ResponseDTO
+                {
+                    IsSuccess = true,
+                    Message = "User updated successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to patch user {Username}:", user.Username);
+                return new ResponseDTO
+                {
+                    IsSuccess = false,
+                    Message = "Failed to update user. Please try again."
                 };
             }
         }

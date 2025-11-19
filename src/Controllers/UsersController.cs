@@ -28,6 +28,7 @@ namespace unipos_basic_backend.src.Controllers
             if (!ModelState.IsValid) return BadRequest(new ResponseDTO { IsSuccess = false, Message = "Invalid data provided." });
 
             var response = await _usersRepository.CreateAsync(user);
+            await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
 
             return response.IsSuccess
                 ? Ok(response)
@@ -40,7 +41,19 @@ namespace unipos_basic_backend.src.Controllers
             if (!ModelState.IsValid) return BadRequest(new ResponseDTO { IsSuccess = false, Message = "Invalid data provided." });
 
             var response = await _usersRepository.CreateDeftsAsync(user);
+            await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
 
+            return response.IsSuccess
+                ? Ok(response)
+                : BadRequest(response);
+        }
+
+        [HttpPatch("v1/update")]
+        public async Task<IActionResult> UpdateAsync([FromBody] UsersUpdateDTO user)
+        {
+            if (!ModelState.IsValid) return BadRequest(new ResponseDTO { IsSuccess = false, Message = "Invalid data provided." });
+
+            var response = await _usersRepository.UpdateAsync(user);
             await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
 
             return response.IsSuccess
@@ -49,11 +62,12 @@ namespace unipos_basic_backend.src.Controllers
         }
 
         [HttpDelete("v1/delete/{id:guid}")]
-        public async Task<IActionResult> DeleteAsync(Guid id)
+        public async Task<IActionResult> DeleteAsync([FromRoute] Guid id)
         {
             if (!ModelState.IsValid) return BadRequest(new ResponseDTO { IsSuccess = false, Message = "User not found." });
 
             var response = await _usersRepository.DeleteAsync(id);
+            await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
 
             return response.IsSuccess
                 ? Ok(response)

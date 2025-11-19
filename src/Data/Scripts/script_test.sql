@@ -15,7 +15,10 @@ SELECT TO_CHAR(created_at, 'DD-MM-YYYY') AS created_date FROM tbusers;
 
 INSERT INTO tbUsers(id, username, password_hash) VALUES('333d55e0-cadc-4412-9da2-4045aa0c1510', '_ramadan', '$2a$10$BlY1qAmZZ7x4jEUUfzHb6eQbNaeZBdMHu2zfckU.0av1MhyFMrmrW');
 
+UPDATE tbUsers SET username = 'friend', phone_number = '12345678', updated_at = NOW() WHERE id = '914e70ca-49f9-4d87-9802-58f027d6c708';
+
 DELETE FROM tbRefreshToken WHERE id = 'c41f251c-1492-4d32-a6be-edd6d3d0bc5d';
 DELETE FROM tbRefreshToken;
 
 DELETE FROM tbusers WHERE id = '80407cfc-99a5-48b5-ac33-4975900f5415';
+DELETE FROM tbUsers WHERE username = 'yes yes yes';
