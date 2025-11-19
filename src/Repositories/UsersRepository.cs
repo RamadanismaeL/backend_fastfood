@@ -15,7 +15,7 @@ namespace unipos_basic_backend.src.Repositories
         public async Task<IEnumerable<UsersListDTO>> GetAllAsync()
         {
             const string sql = @"
-            SELECT id, username, phone_number AS phoneNumber, roles, images AS image, is_active AS is_Active, created_at AS createdAt, updated_at as updatedAt
+            SELECT username, phone_number AS phoneNumber, roles, images AS image, is_active AS is_Active, created_at AS createdAt, updated_at as updatedAt
             FROM tbUsers
             ORDER BY created_at DESC";
 
