@@ -31,12 +31,12 @@ namespace unipos_basic_backend.src.Repositories
             return await conn.QueryFirstOrDefaultAsync<AuthUsersDTO>(sql, new { Id = userId });
         }
 
-        public async Task<string?> GetUsernameById(Guid userId)
+        public async Task<UsernameRoleDTO?> GetUsernameRoleById(Guid userId)
         {
             await using var conn = _db.CreateConnection();
 
-            const string sql = @"SELECT username FROM tbUsers WHERE id = @Id LIMIT 1";
-            return await conn.QueryFirstOrDefaultAsync<string>(sql, new { Id = userId });
+            const string sql = @"SELECT username, roles FROM tbUsers WHERE id = @Id LIMIT 1";
+            return await conn.QueryFirstOrDefaultAsync<UsernameRoleDTO?>(sql, new { Id = userId });
         }
 
         public async Task<RefreshTokenDTO?> GetValidRefreshToken(string token)

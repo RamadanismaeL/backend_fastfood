@@ -132,14 +132,15 @@ namespace unipos_basic_backend.src.Controllers
                 var tokenRecord = await _authRepository.GetValidRefreshToken(refreshToken);
                 if (tokenRecord is null) return Ok(new AuthCheckSessionDTO { ServerOk = true, Is_LoggedIn = false });
 
-                var user = await _authRepository.GetUsernameById(tokenRecord.UserId);
+                var user = await _authRepository.GetUsernameRoleById(tokenRecord.UserId);
                 if (user is null) return Ok(new AuthCheckSessionDTO { ServerOk = true, Is_LoggedIn = false });
                 
                 return Ok(new AuthCheckSessionDTO
                 {
                     ServerOk = true,
                     Is_LoggedIn = true,
-                    Username = user
+                    Username = user.Username,
+                    Roles = user.Roles
                 });
             }
             catch

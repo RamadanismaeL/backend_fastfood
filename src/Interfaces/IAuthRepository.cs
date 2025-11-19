@@ -6,7 +6,7 @@ namespace unipos_basic_backend.src.Interfaces
     {
         Task<AuthUsersDTO?> GetUserByUsername(string username);
         Task<AuthUsersDTO?> GetUserById(Guid userId);
-        Task<string?> GetUsernameById(Guid userId);
+        Task<UsernameRoleDTO?> GetUsernameRoleById(Guid userId);
         Task<RefreshTokenDTO?> GetValidRefreshToken(string token);
         Task SaveRefreshToken(RefreshTokenDTO refreshToken);
         Task RevokeRefreshToken(string token);
