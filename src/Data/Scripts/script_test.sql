@@ -24,3 +24,4 @@ DELETE FROM tbRefreshToken;
 
 DELETE FROM tbusers WHERE id = '80407cfc-99a5-48b5-ac33-4975900f5415';
 DELETE FROM tbUsers WHERE username = 'yes yes yes';
+DELETE FROM tbIngredients WHERE id = '28b5e2d9-4611-4617-92fc-21ef7e6e9f12';

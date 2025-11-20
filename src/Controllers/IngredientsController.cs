@@ -24,7 +24,7 @@ namespace unipos_basic_backend.src.Controllers
         }
 
         [HttpPost("v1/create")]
-        public async Task<IActionResult> CreateAsync([FromForm] IngredientsCreateDTO ingredient)
+        public async Task<IActionResult> CreateAsync([FromBody] IngredientsCreateDTO ingredient)
         {
             if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
 
