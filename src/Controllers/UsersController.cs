@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using unipos_basic_backend.src.Constants;
 using unipos_basic_backend.src.DTOs;
 using unipos_basic_backend.src.Interfaces;
 using unipos_basic_backend.src.Repositories;
@@ -18,60 +19,62 @@ namespace unipos_basic_backend.src.Controllers
         [HttpGet("v1/get-all")]
         public async Task<ActionResult<IEnumerable<UsersListDTO>>> GetAllAsync()
         {
-            var response = await _usersRepository.GetAllAsync();
-            return Ok(response);
+            var result = await _usersRepository.GetAllAsync();
+            return Ok(result);
         }
 
         [HttpPost("v1/create")]
         public async Task<IActionResult> CreateAsync([FromForm] UsersCreateDTO user)
         {
-            if (!ModelState.IsValid) return BadRequest(new ResponseDTO { IsSuccess = false, Message = "Invalid data provided." });
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
 
-            var response = await _usersRepository.CreateAsync(user);
+            var result = await _usersRepository.CreateAsync(user);
+
+            if (!result.IsSuccess)
+                return result.Message == MessagesConstant.AlreadyExists ? Conflict(result) : BadRequest(result);
+
             await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
-
-            return response.IsSuccess
-                ? Ok(response)
-                : BadRequest(response);
+            return Ok(result);
         }
 
         [HttpPost("v1/defts-create")]
         public async Task<IActionResult> CreateDeftsAsync([FromBody] UsersCreateDeftsDTO user)
         {
-            if (!ModelState.IsValid) return BadRequest(new ResponseDTO { IsSuccess = false, Message = "Invalid data provided." });
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
 
-            var response = await _usersRepository.CreateDeftsAsync(user);
+            var result = await _usersRepository.CreateDeftsAsync(user);
+
+            if (!result.IsSuccess)
+                return result.Message == MessagesConstant.AlreadyExists ? Conflict(result) : BadRequest(result);
+
             await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
-
-            return response.IsSuccess
-                ? Ok(response)
-                : BadRequest(response);
+            return Ok(result);
         }
 
         [HttpPatch("v1/update")]
         public async Task<IActionResult> UpdateAsync([FromBody] UsersUpdateDTO user)
         {
-            if (!ModelState.IsValid) return BadRequest(new ResponseDTO { IsSuccess = false, Message = "Invalid data provided." });
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
 
-            var response = await _usersRepository.UpdateAsync(user);
+            var result = await _usersRepository.UpdateAsync(user);
+
+            if (!result.IsSuccess)
+                return result.Message == MessagesConstant.NotFound ? NotFound(result) : BadRequest(result);
+
             await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
-
-            return response.IsSuccess
-                ? Ok(response)
-                : BadRequest(response);
+            return Ok(result);
         }
 
         [HttpDelete("v1/delete/{id:guid}")]
         public async Task<IActionResult> DeleteAsync([FromRoute] Guid id)
         {
-            if (!ModelState.IsValid) return BadRequest(new ResponseDTO { IsSuccess = false, Message = "User not found." });
+            var result = await _usersRepository.DeleteAsync(id);
 
-            var response = await _usersRepository.DeleteAsync(id);
+            if (!result.IsSuccess)
+                return result.Message == MessagesConstant.NotFound ? NotFound(result) : BadRequest(result);
+
             await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
-
-            return response.IsSuccess
-                ? Ok(response)
-                : BadRequest(response);
+            return Ok(result);
         }
     }
 }

@@ -28,7 +28,7 @@ namespace unipos_basic_backend.src.Repositories
                 const string sqlExist = @"SELECT 1 FROM tbIngredients WHERE item_name = @ItemName";
                 var exists = await conn.QueryFirstOrDefaultAsync<int>(sqlExist, new {ingredient.ItemName});
 
-                if (exists == 1) return new ResponseDTO { IsSuccess = false, Message = MessagesConstant.AlreadyExists };
+                if (exists == 1) return ResponseDTO.Failure(MessagesConstant.AlreadyExists);
 
                 const string sqlInsert = @"INSERT INTO tbIngredients (id, item_name, batch_number, unit_of_measure, quantity, unit_cost_price, expiration_at, expiration_status)
                 VALUES (@Id, @ItemName, @BatchNumber, @UnitOfMeasure, @Quantity, @UnitCostPrice, @ExpirationAt, @ExpirationStatus)";
@@ -47,22 +47,14 @@ namespace unipos_basic_backend.src.Repositories
 
                 var result = await conn.ExecuteAsync(sqlInsert, parameters);
 
-                if (result == 0) return new ResponseDTO { IsSuccess = false, Message = MessagesConstant.OperationFailed };
+                if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
 
-                return new ResponseDTO
-                {
-                    IsSuccess = true,
-                    Message = MessagesConstant.Created
-                };
+                return ResponseDTO.Success(MessagesConstant.Created);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, " - Failed to create ingredient.");
-                return new ResponseDTO
-                {
-                    IsSuccess = false,
-                    Message = MessagesConstant.ServerError
-                };
+                return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
         }
 
@@ -75,7 +67,7 @@ namespace unipos_basic_backend.src.Repositories
                 const string sqlExist = @"SELECT 1 FROM tbIngredients WHERE id = @Id";
                 var exists = await conn.QueryFirstOrDefaultAsync<int>(sqlExist, new { ingredient.Id });
 
-                if (exists != 1) return new ResponseDTO { IsSuccess = false, Message = MessagesConstant.NotFound };
+                if (exists != 1) return ResponseDTO.Failure(MessagesConstant.NotFound);
 
                 var updates = new List<string>();
                 var parameters = new DynamicParameters();
@@ -114,26 +106,18 @@ namespace unipos_basic_backend.src.Repositories
 
                 updates.Add("updated_at = NOW()");
 
-                if (updates.Count == 1) return new ResponseDTO { IsSuccess = false, Message = "No changes detected." };
+                if (updates.Count == 1) return ResponseDTO.Failure(MessagesConstant.NoChanges);
 
                 var sql = $@"UPDATE tbIngredients SET {string.Join(",", updates)} WHERE id = @Id";
 
                 var result = await conn.ExecuteAsync(sql, parameters);
 
-                return new ResponseDTO
-                {
-                    IsSuccess = true,
-                    Message = MessagesConstant.Updated
-                };
+                return ResponseDTO.Success(MessagesConstant.Updated);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, " - Failed to update ingredient.");
-                return new ResponseDTO
-                {
-                    IsSuccess = false,
-                    Message = MessagesConstant.ServerError
-                };
+                return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
         }
 
@@ -146,22 +130,14 @@ namespace unipos_basic_backend.src.Repositories
                 const string sql = @"DELETE FROM tbIngredients WHERE id = @Id";
                 var affectedRows = await conn.ExecuteAsync(sql, new { Id = id });
 
-                if (affectedRows == 0) return new ResponseDTO { IsSuccess = false, Message = MessagesConstant.NotFound };
+                if (affectedRows == 0) return ResponseDTO.Failure(MessagesConstant.NotFound);
 
-                return new ResponseDTO
-                {
-                    IsSuccess = true,
-                    Message = MessagesConstant.Deleted
-                };
+                return ResponseDTO.Success(MessagesConstant.Deleted);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error deleting ingredient with ID: {id}");
-                return new ResponseDTO
-                {
-                    IsSuccess = false,
-                    Message = MessagesConstant.ServerError 
-                };
+                return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
         }        
 

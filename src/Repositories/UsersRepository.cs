@@ -33,7 +33,7 @@ namespace unipos_basic_backend.src.Repositories
                 const string checkSql = @"SELECT 1 FROM tbUsers WHERE username = @Username";
                 var userExists = await conn.QueryFirstOrDefaultAsync<int>(checkSql, new { user.Username });
 
-                if (userExists == 1) return new ResponseDTO { IsSuccess = false, Message = MessagesConstant.AlreadyExists };
+                if (userExists == 1) return ResponseDTO.Failure(MessagesConstant.AlreadyExists);
 
                 var imageUrl = string.Empty;
                 if (user.Image is not null && user.Image.Length > 0)
@@ -58,22 +58,14 @@ namespace unipos_basic_backend.src.Repositories
 
                 var result = await conn.ExecuteAsync(insertSql, parameters);
 
-                if (result == 0) return new ResponseDTO { IsSuccess = false, Message = MessagesConstant.OperationFailed };
+                if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
 
-                return new ResponseDTO
-                {
-                    IsSuccess = true,
-                    Message = MessagesConstant.Created
-                };
+                return ResponseDTO.Success(MessagesConstant.Created);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, " - Failed to create user. Please try again.");
-                return new ResponseDTO
-                {
-                    IsSuccess = false,
-                    Message = MessagesConstant.ServerError
-                };
+                return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
         }
 
@@ -104,22 +96,14 @@ namespace unipos_basic_backend.src.Repositories
 
                 var result = await conn.ExecuteAsync(insertSql, parameters);
 
-                if (result == 0) return new ResponseDTO { IsSuccess = false, Message = MessagesConstant.OperationFailed };
+                if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
 
-                return new ResponseDTO
-                {
-                    IsSuccess = true,
-                    Message = MessagesConstant.Created
-                };
+                return ResponseDTO.Success(MessagesConstant.Created);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, " - Failed to create user. Please try again.");
-                return new ResponseDTO
-                {
-                    IsSuccess = false,
-                    Message = MessagesConstant.ServerError
-                };
+                return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
         }
 
@@ -134,7 +118,7 @@ namespace unipos_basic_backend.src.Repositories
                 var exists = await conn.QueryFirstOrDefaultAsync<int>(checkSql, new { user.Id });
 
                 if (exists != 1)
-                    return new ResponseDTO { IsSuccess = false, Message = MessagesConstant.NotFound };
+                    return ResponseDTO.Failure(MessagesConstant.NotFound);
 
                 var updates = new List<string>();
                 var parameters = new DynamicParameters();
@@ -172,7 +156,7 @@ namespace unipos_basic_backend.src.Repositories
 
                 if (updates.Count == 1)
                 {
-                    return new ResponseDTO { IsSuccess = true, Message = MessagesConstant.NoChanges };
+                    return ResponseDTO.Failure(MessagesConstant.NoChanges);
                 }
 
                 // 3. Build final SQL
@@ -180,20 +164,12 @@ namespace unipos_basic_backend.src.Repositories
 
                 var result = await conn.ExecuteAsync(sql, parameters);
 
-                return new ResponseDTO
-                {
-                    IsSuccess = true,
-                    Message = MessagesConstant.Updated
-                };
+                return ResponseDTO.Success(MessagesConstant.Updated);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to patch user {Username}:", user.Username);
-                return new ResponseDTO
-                {
-                    IsSuccess = false,
-                    Message = MessagesConstant.ServerError
-                };
+                return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
         }
 
@@ -209,7 +185,7 @@ namespace unipos_basic_backend.src.Repositories
                 const string deleteSql = @"DELETE FROM tbUsers WHERE id = @Id";                
                 var affectedRows = await conn.ExecuteAsync(deleteSql, new { Id = id });
 
-                if (affectedRows == 0) return new ResponseDTO { IsSuccess = false, Message = MessagesConstant.NotFound };
+                if (affectedRows == 0) return ResponseDTO.Failure(MessagesConstant.NotFound);
 
                 if (!string.IsNullOrEmpty(imagePath))
                 {
@@ -234,20 +210,12 @@ namespace unipos_basic_backend.src.Repositories
                     }
                 }
 
-                return new ResponseDTO
-                {
-                    IsSuccess = true,
-                    Message = MessagesConstant.Deleted
-                };
+                return ResponseDTO.Success(MessagesConstant.Deleted);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error deleting user with ID: {id}");
-                return new ResponseDTO
-                {
-                    IsSuccess = false,
-                    Message = MessagesConstant.ServerError
-                };
+                return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
         }
     }
