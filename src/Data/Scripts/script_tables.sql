@@ -20,3 +20,21 @@ CREATE TABLE IF NOT EXISTS tbRefreshToken
     created_at TIMESTAMPTZ DEFAULT NOW(),
     revoked_at TIMESTAMPTZ
 );
+
+CREATE TABLE IF NOT EXISTS tbIngredients (
+    id UUID PRIMARY KEY,    
+    item_name VARCHAR(50) NOT NULL,    
+    batch_number VARCHAR(50) NULL,
+    unit_of_measure VARCHAR(10) NOT NULL,    
+    quantity NUMERIC NOT NULL DEFAULT 0,    
+    unit_cost_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    total_cost_price DECIMAL(12,2) GENERATED ALWAYS AS 
+        (quantity * unit_cost_price) STORED,    
+    expiration_at TIMESTAMPTZ NOT NULL,    
+    expiration_status VARCHAR(25) NOT NULL,    
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,    
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,    
+    updated_at TIMESTAMPTZ DEFAULT NULL,
+
+    CONSTRAINT up_item_batch_expiry UNIQUE (item_name, expiration_at)
+);

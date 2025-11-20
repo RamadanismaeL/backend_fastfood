@@ -1,5 +1,6 @@
 using Dapper;
 using unipos_basic_backend.src.Configs;
+using unipos_basic_backend.src.Constants;
 using unipos_basic_backend.src.Data;
 using unipos_basic_backend.src.DTOs;
 using unipos_basic_backend.src.Interfaces;
@@ -32,7 +33,7 @@ namespace unipos_basic_backend.src.Repositories
                 const string checkSql = @"SELECT 1 FROM tbUsers WHERE username = @Username";
                 var userExists = await conn.QueryFirstOrDefaultAsync<int>(checkSql, new { user.Username });
 
-                if (userExists == 1) return new ResponseDTO { IsSuccess = false, Message = "Username already exists." };
+                if (userExists == 1) return new ResponseDTO { IsSuccess = false, Message = MessagesConstant.AlreadyExists };
 
                 var imageUrl = string.Empty;
                 if (user.Image is not null && user.Image.Length > 0)
@@ -57,12 +58,12 @@ namespace unipos_basic_backend.src.Repositories
 
                 var result = await conn.ExecuteAsync(insertSql, parameters);
 
-                if (result == 0) return new ResponseDTO { IsSuccess = false, Message = "Failed to create user. Please try again." };
+                if (result == 0) return new ResponseDTO { IsSuccess = false, Message = MessagesConstant.OperationFailed };
 
                 return new ResponseDTO
                 {
                     IsSuccess = true,
-                    Message = "User created successfully."
+                    Message = MessagesConstant.Created
                 };
             }
             catch (Exception ex)
@@ -71,7 +72,7 @@ namespace unipos_basic_backend.src.Repositories
                 return new ResponseDTO
                 {
                     IsSuccess = false,
-                    Message = "Failed to create user. Please try again."
+                    Message = MessagesConstant.ServerError
                 };
             }
         }
@@ -103,12 +104,12 @@ namespace unipos_basic_backend.src.Repositories
 
                 var result = await conn.ExecuteAsync(insertSql, parameters);
 
-                if (result == 0) return new ResponseDTO { IsSuccess = false, Message = "Failed to create user. Please try again." };
+                if (result == 0) return new ResponseDTO { IsSuccess = false, Message = MessagesConstant.OperationFailed };
 
                 return new ResponseDTO
                 {
                     IsSuccess = true,
-                    Message = "User created successfully."
+                    Message = MessagesConstant.Created
                 };
             }
             catch (Exception ex)
@@ -117,7 +118,7 @@ namespace unipos_basic_backend.src.Repositories
                 return new ResponseDTO
                 {
                     IsSuccess = false,
-                    Message = "Failed to create user. Please try again."
+                    Message = MessagesConstant.ServerError
                 };
             }
         }
@@ -130,10 +131,10 @@ namespace unipos_basic_backend.src.Repositories
 
                 // 1. Check if user exists
                 const string checkSql = @"SELECT 1 FROM tbUsers WHERE id = @Id";
-                var exists = await conn.QueryFirstOrDefaultAsync<int>(checkSql, new { Id = user.Id });
+                var exists = await conn.QueryFirstOrDefaultAsync<int>(checkSql, new { user.Id });
 
                 if (exists != 1)
-                    return new ResponseDTO { IsSuccess = false, Message = "User not found." };
+                    return new ResponseDTO { IsSuccess = false, Message = MessagesConstant.NotFound };
 
                 var updates = new List<string>();
                 var parameters = new DynamicParameters();
@@ -171,7 +172,7 @@ namespace unipos_basic_backend.src.Repositories
 
                 if (updates.Count == 1)
                 {
-                    return new ResponseDTO { IsSuccess = true, Message = "No changes detected." };
+                    return new ResponseDTO { IsSuccess = true, Message = MessagesConstant.NoChanges };
                 }
 
                 // 3. Build final SQL
@@ -182,7 +183,7 @@ namespace unipos_basic_backend.src.Repositories
                 return new ResponseDTO
                 {
                     IsSuccess = true,
-                    Message = "User updated successfully."
+                    Message = MessagesConstant.Updated
                 };
             }
             catch (Exception ex)
@@ -191,7 +192,7 @@ namespace unipos_basic_backend.src.Repositories
                 return new ResponseDTO
                 {
                     IsSuccess = false,
-                    Message = "Failed to update user. Please try again."
+                    Message = MessagesConstant.ServerError
                 };
             }
         }
@@ -205,10 +206,10 @@ namespace unipos_basic_backend.src.Repositories
                 const string getImageSql = @"SELECT images FROM tbUsers WHERE id = @Id";
                 var imagePath = await conn.QueryFirstOrDefaultAsync<string>(getImageSql, new { Id = id });
 
-                const string deleteSql = @"DELETE FROM tbUsers WHERE id = @id";                
+                const string deleteSql = @"DELETE FROM tbUsers WHERE id = @Id";                
                 var affectedRows = await conn.ExecuteAsync(deleteSql, new { Id = id });
 
-                if (affectedRows == 0) return new ResponseDTO { IsSuccess = false, Message = $"No user found with ID: {id}" };
+                if (affectedRows == 0) return new ResponseDTO { IsSuccess = false, Message = MessagesConstant.NotFound };
 
                 if (!string.IsNullOrEmpty(imagePath))
                 {
@@ -236,7 +237,7 @@ namespace unipos_basic_backend.src.Repositories
                 return new ResponseDTO
                 {
                     IsSuccess = true,
-                    Message = $"User deleted successfully."
+                    Message = MessagesConstant.Deleted
                 };
             }
             catch (Exception ex)
@@ -245,7 +246,7 @@ namespace unipos_basic_backend.src.Repositories
                 return new ResponseDTO
                 {
                     IsSuccess = false,
-                    Message = $"Error deleting user with ID: {id}"
+                    Message = MessagesConstant.ServerError
                 };
             }
         }

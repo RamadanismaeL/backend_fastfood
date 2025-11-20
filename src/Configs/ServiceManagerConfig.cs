@@ -30,6 +30,7 @@ namespace unipos_basic_backend.src.Configs
                 service.AddSingleton<PostgresDb>();
                 service.AddScoped<IUsersRepository, UsersRepository>();
                 service.AddScoped<IAuthRepository, AuthRepository>();
+                service.AddScoped<IIngredientsRepository, IngredientsRepository>();
 
                 // Rate limitting: Sliding Windows
                 service.AddRateLimiter(op =>

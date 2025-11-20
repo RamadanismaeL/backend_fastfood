@@ -1,10 +1,12 @@
 DROP TABLE tbUsers;
 DROP TABLE tbrefreshtoken;
+DROP TABLE tbIngredients;
 
 SELECT 1;
 
 SELECT * FROM tbUsers;
 SELECT * FROM tbRefreshToken;
+SELECT * FROM tbIngredients;
 
 SELECT id, username, phone_number, roles, images, is_active, created_at, updated_at FROM tbUsers;
 SELECT username FROM tbUsers WHERE username = 'ramadan';
