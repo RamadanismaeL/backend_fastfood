@@ -16,7 +16,7 @@ namespace unipos_basic_backend.src.Repositories
         public async Task<IEnumerable<UsersListDTO>> GetAllAsync()
         {
             const string sql = @"
-            SELECT id, username, phone_number AS phoneNumber, roles, images AS image, is_active AS is_Active, created_at AS createdAt, updated_at as updatedAt
+            SELECT id, username, phone_number AS phoneNumber, roles, images AS image, is_active AS isActive, created_at AS createdAt, updated_at as updatedAt
             FROM tbUsers
             ORDER BY created_at DESC";
 
@@ -142,8 +142,8 @@ namespace unipos_basic_backend.src.Repositories
                     parameters.Add("@Roles", user.Roles);
                 }
 
-                updates.Add("is_active = @Is_Active");
-                parameters.Add("@Is_Active", user.Is_Active);
+                updates.Add("is_active = @IsActive");
+                parameters.Add("@IsActive", user.IsActive);
 
                 if (!string.IsNullOrWhiteSpace(user.Password))
                 {

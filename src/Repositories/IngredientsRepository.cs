@@ -13,7 +13,7 @@ namespace unipos_basic_backend.src.Repositories
 
         public async Task<IEnumerable<IngredientsListDTO>> GetAllAsync()
         {
-            const string sql = @"SELECT id, item_name AS ItemName, batch_number AS BatchNumber, unit_of_measure AS UnitOfMeasure, quantity, unit_cost_price AS UnitCostPrice, total_cost_price AS TotalCostPrice, expiration_at AS ExpirationAt, expiration_status AS ExpirationStatus, is_active AS IsActive, created_at AS CreatedAt, updated_at AS UpdatedAt FROM tbIngredients ORDER BY ItemName ASC";
+            const string sql = @"SELECT id, item_name AS ItemName, batch_number AS BatchNumber, package_size AS PackageSize, unit_of_measure AS UnitOfMeasure, quantity, unit_cost_price AS UnitCostPrice, total_cost_price AS TotalCostPrice, expiration_at AS ExpirationAt, expiration_status AS ExpirationStatus, is_active AS IsActive, created_at AS CreatedAt, updated_at AS UpdatedAt FROM tbIngredients ORDER BY ItemName ASC";
 
             await using var conn = _db.CreateConnection();
             return (await conn.QueryAsync<IngredientsListDTO>(sql)).AsList();
@@ -30,14 +30,15 @@ namespace unipos_basic_backend.src.Repositories
 
                 if (exists == 1) return ResponseDTO.Failure(MessagesConstant.AlreadyExists);
 
-                const string sqlInsert = @"INSERT INTO tbIngredients (id, item_name, batch_number, unit_of_measure, quantity, unit_cost_price, expiration_at, expiration_status)
-                VALUES (@Id, @ItemName, @BatchNumber, @UnitOfMeasure, @Quantity, @UnitCostPrice, @ExpirationAt, @ExpirationStatus)";
+                const string sqlInsert = @"INSERT INTO tbIngredients (id, item_name, batch_number, package_size, unit_of_measure, quantity, unit_cost_price, expiration_at, expiration_status)
+                VALUES (@Id, @ItemName, @BatchNumber, @PackageSize, @UnitOfMeasure, @Quantity, @UnitCostPrice, @ExpirationAt, @ExpirationStatus)";
 
                 var parameters = new
                 {
                     Id = Guid.NewGuid(),
                     ingredient.ItemName,
                     ingredient.BatchNumber,
+                    ingredient.PackageSize,
                     ingredient.UnitOfMeasure,
                     ingredient.Quantity,
                     ingredient.UnitCostPrice,
@@ -82,6 +83,9 @@ namespace unipos_basic_backend.src.Repositories
                 
                 updates.Add("batch_number = @BatchNumber");
                 parameters.Add("@BatchNumber", ingredient.BatchNumber);
+
+                updates.Add("package_size = @PackageSize");
+                parameters.Add("@PackageSize", ingredient.PackageSize);
 
                 if (!string.IsNullOrWhiteSpace(ingredient.UnitOfMeasure))
                 {
@@ -141,8 +145,9 @@ namespace unipos_basic_backend.src.Repositories
             }
         }        
 
-        private static string GetExpirationStatus(DateTime expirationAt)
+        private static string GetExpirationStatus(DateTime? expirationAt)
         {
+            if (expirationAt is null) return null!;
             const int NearExpiryDays = 30;
             var utcNow = DateTime.UtcNow;
 
