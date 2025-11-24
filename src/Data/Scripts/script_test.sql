@@ -73,3 +73,6 @@ DELETE FROM tbRefreshToken;
 DELETE FROM tbusers WHERE id = '80407cfc-99a5-48b5-ac33-4975900f5415';
 DELETE FROM tbUsers WHERE username = 'yes yes yes';
 DELETE FROM tbIngredients WHERE id = '28b5e2d9-4611-4617-92fc-21ef7e6e9f12';
+
+DELETE FROM tbProducts WHERE id = 'e2100cc8-1710-4762-aade-8a95c5d291f7';
+-- e2100cc8-1710-4762-aade-8a95c5d291f7
