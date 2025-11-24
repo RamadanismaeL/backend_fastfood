@@ -1,7 +1,6 @@
 using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
-using Microsoft.AspNetCore.RateLimiting;
 using unipos_basic_backend.src.Data;
 using unipos_basic_backend.src.Interfaces;
 using unipos_basic_backend.src.Repositories;
@@ -31,11 +30,12 @@ namespace unipos_basic_backend.src.Configs
                 service.AddScoped<IUsersRepository, UsersRepository>();
                 service.AddScoped<IAuthRepository, AuthRepository>();
                 service.AddScoped<IIngredientsRepository, IngredientsRepository>();
+                service.AddScoped<IProductsRepository, ProductsRepository>();
 
                 // Rate limitting: Sliding Windows
                 service.AddRateLimiter(op =>
                 {
-                    // 1. Gloabl: 100 requests in any 60-second window (per user or IP)
+                    // 1. Global: 100 requests in any 60-second window (per user or IP)
                     op.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
                     {
                         var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";

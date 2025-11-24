@@ -3,7 +3,7 @@ using unipos_basic_backend.src.DTOs;
 
 namespace unipos_basic_backend.src.Validators
 {
-    public class UsersCreateDeftsValidator: AbstractValidator<UsersCreateDeftsDTO>
+    public sealed class UsersCreateDeftsValidator: AbstractValidator<UsersCreateDeftsDTO>
     {
         public UsersCreateDeftsValidator()
         {

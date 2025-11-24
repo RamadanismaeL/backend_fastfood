@@ -3,9 +3,9 @@ using unipos_basic_backend.src.DTOs;
 
 namespace unipos_basic_backend.src.Validators
 {
-    public sealed class IngredientsCreateValidator: AbstractValidator<IngredientsCreateDTO>
+    public sealed class ProductsCreateValidator : AbstractValidator<ProductsCreateDTO>
     {
-        public IngredientsCreateValidator()
+        public ProductsCreateValidator()
         {
             RuleFor(i => i.ItemName)
                 .NotEmpty()

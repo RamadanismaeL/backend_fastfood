@@ -8,5 +8,6 @@ namespace unipos_basic_backend.src.Interfaces
         Task<ResponseDTO> CreateAsync(IngredientsCreateDTO ingredient);
         Task<ResponseDTO> UpdateAsync(IngredientsUpdateDTO ingredient);
         Task<ResponseDTO> DeleteAsync(Guid id);
+        Task<IngredientsCardsDTO> GetCardAsync();
     }
 }

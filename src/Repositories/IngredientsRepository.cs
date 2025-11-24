@@ -116,6 +116,8 @@ namespace unipos_basic_backend.src.Repositories
 
                 var result = await conn.ExecuteAsync(sql, parameters);
 
+                if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+
                 return ResponseDTO.Success(MessagesConstant.Updated);
             }
             catch (Exception ex)
@@ -143,7 +145,23 @@ namespace unipos_basic_backend.src.Repositories
                 _logger.LogError(ex, $"Error deleting ingredient with ID: {id}");
                 return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
-        }        
+        }    
+
+        public async Task<IngredientsCardsDTO> GetCardAsync()
+        {
+            const string sql = @"
+                SELECT
+                    COUNT(*) FILTER (WHERE is_active = TRUE)                                  AS activeCount,
+                    COUNT(*) FILTER (WHERE is_active = FALSE)                                 AS inactiveCount,
+                    COALESCE(SUM(quantity) FILTER (WHERE is_active = TRUE), 0)                AS totalActiveQty,
+                    COUNT(*) FILTER (WHERE expiration_status = 'Near Expiry' AND is_active)   AS nearExpiryCount,
+                    COUNT(*) FILTER (WHERE expiration_status = 'Expired' AND is_active)       AS expiredCount
+                FROM tbIngredients";
+
+            await using var conn = _db.CreateConnection();
+            var result = await conn.QueryAsync<IngredientsCardsDTO>(sql);
+            return result.FirstOrDefault() ?? new IngredientsCardsDTO();
+        }    
 
         private static string GetExpirationStatus(DateTime? expirationAt)
         {

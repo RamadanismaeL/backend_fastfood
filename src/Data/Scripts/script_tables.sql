@@ -1,3 +1,6 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+
 CREATE TABLE IF NOT EXISTS tbUsers
 (
     id UUID PRIMARY KEY,    
@@ -39,3 +42,26 @@ CREATE TABLE IF NOT EXISTS tbIngredients (
 
     CONSTRAINT up_item_batch_expiry UNIQUE (item_name, expiration_at)
 );
+
+CREATE TABLE IF NOT EXISTS tbProducts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    item_name VARCHAR(50) NOT NULL,
+    image_url VARCHAR(255) NULL,    
+    price DECIMAL(10,2) DEFAULT 0.00,
+    category VARCHAR(50) NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tbIngredientsProducts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    product_id UUID NOT NULL REFERENCES tbProducts(id) ON DELETE CASCADE,
+    ingredient_id UUID NOT NULL REFERENCES tbIngredients(id) ON DELETE CASCADE,
+    package_size NUMERIC DEFAULT 0,
+    unit_of_measure VARCHAR(10),
+    quantity NUMERIC(10,3) DEFAULT 0 CHECK (quantity >= 0),
+    
+    -- Prevent the same ingredient being added twice to the same product
+    UNIQUE(product_id, ingredient_id)
+);
+CREATE INDEX idx_ingredientsproducts_ingredient ON tbIngredientsProducts(ingredient_id);
