@@ -65,3 +65,5 @@ CREATE TABLE IF NOT EXISTS tbIngredientsProducts (
     UNIQUE(product_id, ingredient_id)
 );
 CREATE INDEX idx_ingredientsproducts_ingredient ON tbIngredientsProducts(ingredient_id);
+CREATE INDEX idx_ip_product_id ON tbIngredientsProducts(product_id);
+CREATE INDEX idx_i_id ON tbIngredients(id);

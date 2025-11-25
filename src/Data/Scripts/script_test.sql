@@ -47,6 +47,16 @@ SELECT
     ), '[]'::json) AS ingredients
 FROM tbProducts p;
 
+SELECT
+    i.item_name AS item_name,
+    ip.package_size,
+    ip.unit_of_measure,
+    ip.quantity
+FROM tbIngredientsProducts ip
+JOIN tbIngredients i ON i.id = ip.ingredient_id
+WHERE ip.product_id = '798035ea-9bf0-4cee-9fcc-b6f1d42b37ab';
+
+
 INSERT INTO tbUsers(id, username, password_hash) VALUES('333d55e0-cadc-4412-9da2-4045aa0c1510', '_ramadan', '$2a$10$BlY1qAmZZ7x4jEUUfzHb6eQbNaeZBdMHu2zfckU.0av1MhyFMrmrW');
 
 -- 1. Produtos
@@ -59,11 +69,11 @@ INSERT INTO tbProducts (item_name, image_url, price, category, is_active, create
 
 -- 2. Ingredientes / Componentes
 INSERT INTO tbIngredientsProducts (product_id, ingredient_id, package_size, unit_of_measure, quantity) VALUES
-('8ef031e0-99ef-4aac-bece-6c32a5650515', '2e6196dd-809b-4bb2-9848-f71751e19071', 1,    'un',   1),  
-('8ef031e0-99ef-4aac-bece-6c32a5650515', '0cf73ce7-794c-4830-bd2c-e407b8b5e27d', 50,   'ml',   1),  
-('e2100cc8-1710-4762-aade-8a95c5d291f7', '0cf73ce7-794c-4830-bd2c-e407b8b5e27d', 2,    'm²',   1),  
-('176f4591-cdf0-4697-80a7-7dafa31ff068', '2e6196dd-809b-4bb2-9848-f71751e19071', 500,  'g',    0.1),
-('176f4591-cdf0-4697-80a7-7dafa31ff068', '9d617f54-b893-4a2f-a574-5873752b1bc8', 1,    'un',   2); 
+('c11c9146-3f8c-4f77-8b48-1118fbf343a4', '860ea9eb-f74f-4dbb-a319-3a90889a0a7d', 1,    'un',   1),  
+('798035ea-9bf0-4cee-9fcc-b6f1d42b37ab', '860ea9eb-f74f-4dbb-a319-3a90889a0a7d', 50,   'ml',   1),  
+('c11c9146-3f8c-4f77-8b48-1118fbf343a4', '2e6196dd-809b-4bb2-9848-f71751e19071', 2,    'm²',   1),  
+('c11c9146-3f8c-4f77-8b48-1118fbf343a4', '291f571d-b3e1-49e6-afd6-aa2233aa91a5', 500,  'g',    0.1),
+('798035ea-9bf0-4cee-9fcc-b6f1d42b37ab', '0cf73ce7-794c-4830-bd2c-e407b8b5e27d', 1,    'un',   2); 
 
 UPDATE tbUsers SET username = 'friend', phone_number = '12345678', updated_at = NOW() WHERE id = '914e70ca-49f9-4d87-9802-58f027d6c708';
 

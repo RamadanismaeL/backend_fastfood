@@ -83,44 +83,30 @@ namespace unipos_basic_backend.src.Repositories
                 {
                     updates.Add("item_name = @ItemName");
                     parameters.Add("@ItemName", products.ItemName);
-                }                
+                }     
 
                 const string getImageSql = @"SELECT image_url FROM tbProducts WHERE id = @Id";
-                var imagePath = await conn.QueryFirstOrDefaultAsync<string>(getImageSql, new { products.Id });
-
-                if (!string.IsNullOrEmpty(imagePath))
-                {
-                    try
-                    {
-                        var oldImageName = Path.GetFileName(new Uri(imagePath).LocalPath);
-                        if (!string.IsNullOrEmpty(oldImageName))
-                        {
-                            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
-
-                            var oldImagePath = Path.Combine(uploadsFolder, oldImageName);
-
-                            if (System.IO.File.Exists(oldImagePath))
-                            {
-                                System.IO.File.Delete(oldImagePath);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error deleting image file.");
-                    }
-                }       
-
+                var imagePath = await conn.QueryFirstOrDefaultAsync<string>(getImageSql, new { products.Id });        
                 var imageUrl = string.Empty;
-                if (products.ImageUrl is not null && products.ImageUrl.Length > 0)
+
+                if (products.RemoveImage)
                 {
+                   if (!string.IsNullOrEmpty(imagePath)) RemoveProductImage(imagePath);
+
+                    updates.Add("image_url = @ImageUrl");
+                    parameters.Add("@ImageUrl", imageUrl);
+                }
+                else if (products.ImageUrl is not null && products.ImageUrl.Length > 0)
+                {
+                    if (!string.IsNullOrEmpty(imagePath)) RemoveProductImage(imagePath);
+                    
                     var fileName = await FileUploadConfig.UploadFile(products.ImageUrl);
                     var request = _httpContextAcc.HttpContext!.Request;
                     imageUrl = $"{request.Scheme}://{request.Host}/images/{fileName}";
-                }  
 
-                updates.Add("image_url = @ImageUrl");
-                parameters.Add("@ImageUrl", imageUrl);
+                    updates.Add("image_url = @ImageUrl");
+                    parameters.Add("@ImageUrl", imageUrl);
+                }  
 
                 updates.Add("price = @Price");
                 parameters.Add("@Price", products.Price);
@@ -162,28 +148,7 @@ namespace unipos_basic_backend.src.Repositories
 
                 if (affectedRows == 0) return ResponseDTO.Failure(MessagesConstant.NotFound);
 
-                if (!string.IsNullOrEmpty(imagePath))
-                {
-                    try
-                    {
-                        var oldImageName = Path.GetFileName(new Uri(imagePath).LocalPath);
-                        if (!string.IsNullOrEmpty(oldImageName))
-                        {
-                            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
-
-                            var oldImagePath = Path.Combine(uploadsFolder, oldImageName);
-
-                            if (System.IO.File.Exists(oldImagePath))
-                            {
-                                System.IO.File.Delete(oldImagePath);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error deleting image file.");
-                    }
-                }
+                if (!string.IsNullOrEmpty(imagePath)) RemoveProductImage(imagePath);
 
                 return ResponseDTO.Success(MessagesConstant.Deleted);
             }
@@ -191,6 +156,29 @@ namespace unipos_basic_backend.src.Repositories
             {
                 _logger.LogError(ex, $"Error deleting product with ID: {id}");
                 return ResponseDTO.Failure(MessagesConstant.ServerError);
+            }
+        }
+
+        private void RemoveProductImage(string imagePath)
+        {
+            try
+            {
+                var oldImageName = Path.GetFileName(new Uri(imagePath).LocalPath);
+                if (!string.IsNullOrEmpty(oldImageName))
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+
+                    var oldImagePath = Path.Combine(uploadsFolder, oldImageName);
+
+                    if (System.IO.File.Exists(oldImagePath))
+                    {
+                        System.IO.File.Delete(oldImagePath);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting image file.");
             }
         }
     }
