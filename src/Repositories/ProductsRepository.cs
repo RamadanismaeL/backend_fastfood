@@ -181,5 +181,137 @@ namespace unipos_basic_backend.src.Repositories
                 _logger.LogError(ex, "Error deleting image file.");
             }
         }
+
+        public async Task<IEnumerable<ProductIngredientsListDTO>> GetProductIngredient(Guid productId)
+        {
+            const string sql = @"
+            SELECT
+                ip.id AS Id,
+                CONCAT_WS(' ', i.item_name, i.package_size, i.unit_of_measure) AS ItemName,
+                ip.quantity AS Quantity
+            FROM tbIngredientsProducts ip
+            JOIN tbIngredients i ON i.id = ip.ingredient_id
+            WHERE ip.product_id = @Id
+            ORDER BY i.item_name ASC";
+
+            await using var conn = _db.CreateConnection();
+            return (await conn.QueryAsync<ProductIngredientsListDTO>(sql, new { Id = productId })).AsList();
+        }
+
+        public async Task<ResponseDTO> CreateProductIngredient(ProductIngredientsCreateDTO productIngredient)
+        {
+            try
+            {
+                await using var conn = _db.CreateConnection();
+
+                const string sqlExist = @"SELECT 1 FROM tbIngredientsProducts WHERE product_id = @ProductId AND ingredient_id = @IngredientId";
+                var exists = await conn.QueryFirstOrDefaultAsync<bool>(sqlExist, new { productIngredient.ProductId, productIngredient.IngredientId });
+
+                if (exists) return ResponseDTO.Failure(MessagesConstant.AlreadyExists);
+
+                const string sqlInsert = @"INSERT INTO tbIngredientsProducts (product_id, ingredient_id, quantity)
+                VALUES (@ProductId, @IngredientId, @Quantity)";
+
+                var parameters = new
+                {
+                    productIngredient.ProductId,
+                    productIngredient.IngredientId,
+                    productIngredient.Quantity
+                };
+
+                var result = await conn.ExecuteAsync(sqlInsert, parameters);
+
+                if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+
+                return ResponseDTO.Success(MessagesConstant.Created);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, " - Failed to create productIngredient.");
+                return ResponseDTO.Failure(MessagesConstant.ServerError);
+            }
+        }
+
+        public async Task<ResponseDTO> UpdateProductIngredient(ProductIngredientsUpdateDTO productIngredient)
+        {
+            try
+            {
+                await using var conn = _db.CreateConnection();
+
+                const string sqlExist = @"SELECT 1 FROM tbIngredientsProducts WHERE id = @Id";
+                var exists = await conn.QueryFirstOrDefaultAsync<int>(sqlExist, new { productIngredient.Id });
+
+                if (exists != 1) return ResponseDTO.Failure(MessagesConstant.NotFound);
+
+                var updates = new List<string>();
+                var parameters = new DynamicParameters();
+
+                parameters.Add("@Id", productIngredient.Id);
+
+                const string sqlExistIngredint = @"SELECT 1 FROM tbIngredientsProducts WHERE id = @Id AND ingredient_id = @IngredientId";
+                var existIngredient = await conn.QueryFirstOrDefaultAsync<bool>(sqlExistIngredint, new { productIngredient.Id, productIngredient.IngredientId });
+
+                if (!existIngredient)
+                {
+                    updates.Add("ingredient_id = @IngredientId");
+                    parameters.Add("@IngredientId", productIngredient.IngredientId);
+                }
+
+                updates.Add("package_size = @PackageSize");
+                parameters.Add("@PackageSize", productIngredient.PackageSize);
+
+                if (!string.IsNullOrWhiteSpace(productIngredient.UnitOfMeasure))
+                {
+                    updates.Add("unit_of_measure = @UnitOfMeasure");
+                    parameters.Add("@UnitOfMeasure", productIngredient.UnitOfMeasure);
+                }
+
+                updates.Add("quantity = @Quantity");
+                parameters.Add("@Quantity", productIngredient.Quantity);
+                
+                if (updates.Count == 1) return ResponseDTO.Failure(MessagesConstant.NoChanges);
+
+                var sql = $@"UPDATE tbIngredientsProducts SET {string.Join(",", updates)} WHERE id = @Id";
+
+                var result = await conn.ExecuteAsync(sql, parameters);
+
+                if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+
+                return ResponseDTO.Success(MessagesConstant.Updated);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, " - Failed to update productIngredient.");
+                return ResponseDTO.Failure(MessagesConstant.ServerError);
+            }
+        }
+
+        public async Task<ResponseDTO> DeleteProductIngredient(Guid id)
+        {
+            try
+            {
+                await using var conn = _db.CreateConnection();
+
+                const string sql = @"DELETE FROM tbIngredientsProducts WHERE id = @Id";
+                var affectedRows = await conn.ExecuteAsync(sql, new { Id = id });
+
+                if (affectedRows == 0) return ResponseDTO.Failure(MessagesConstant.NotFound);
+
+                return ResponseDTO.Success(MessagesConstant.Deleted);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deleting productIngredient with ID: {id}");
+                return ResponseDTO.Failure(MessagesConstant.ServerError);
+            }
+        } 
+
+        public async Task<IEnumerable<ProductIngredientSelectIngredientDTO>> GetSelectIngredient()
+        {
+            const string sql = @"SELECT id, CONCAT_WS(' ', item_name, package_size, unit_of_measure) AS ItemName FROM tbIngredients ORDER BY ItemName ASC";
+
+            await using var conn = _db.CreateConnection();
+            return (await conn.QueryAsync<ProductIngredientSelectIngredientDTO>(sql)).AsList();
+        }
     }
 }

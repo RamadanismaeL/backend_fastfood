@@ -7,7 +7,7 @@ namespace unipos_basic_backend.src.Validators
     {
         public ProductsUpdateValidator()
         {
-            RuleFor(i => i.ItemName)
+            RuleFor(p => p.ItemName)
                 .NotEmpty()
                 .WithMessage("Item Name is required")
                 .Length(2, 50)

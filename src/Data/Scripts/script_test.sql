@@ -56,6 +56,16 @@ FROM tbIngredientsProducts ip
 JOIN tbIngredients i ON i.id = ip.ingredient_id
 WHERE ip.product_id = '798035ea-9bf0-4cee-9fcc-b6f1d42b37ab';
 
+SELECT 1 FROM tbIngredientsProducts WHERE id = '15b23fdd-b3de-41dd-bf16-e75bc00a5b37' AND ingredient_id = '0508dc3d-f10f-4e9d-9136-c29695470d7c';
+
+SELECT
+    ip.id AS Id,
+    i.item_name || ' ' || i.package_size || '' || i.unit_of_measure AS ItemName,
+    ip.quantity AS Quantity
+FROM tbIngredientsProducts ip
+JOIN tbIngredients i ON i.id = ip.ingredient_id;
+
+SELECT id, CONCAT_WS(' ', item_name, package_size, unit_of_measure) AS ItemName FROM tbIngredients ORDER BY ItemName ASC;
 
 INSERT INTO tbUsers(id, username, password_hash) VALUES('333d55e0-cadc-4412-9da2-4045aa0c1510', '_ramadan', '$2a$10$BlY1qAmZZ7x4jEUUfzHb6eQbNaeZBdMHu2zfckU.0av1MhyFMrmrW');
 
