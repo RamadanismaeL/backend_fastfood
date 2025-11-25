@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS tbIngredientsProducts (
     product_id UUID NOT NULL REFERENCES tbProducts(id) ON DELETE CASCADE,
     ingredient_id UUID NOT NULL REFERENCES tbIngredients(id) ON DELETE CASCADE,
     quantity NUMERIC DEFAULT 0 CHECK (quantity >= 0),
+    updated_at TIMESTAMPTZ DEFAULT NULL,
     
     -- Prevent the same ingredient being added twice to the same product
     UNIQUE(product_id, ingredient_id)

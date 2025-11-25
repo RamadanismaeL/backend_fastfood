@@ -187,6 +187,7 @@ namespace unipos_basic_backend.src.Repositories
             const string sql = @"
             SELECT
                 ip.id AS Id,
+                ip.ingredient_id AS IngredientId,
                 CONCAT_WS(' ', i.item_name, i.package_size, i.unit_of_measure) AS ItemName,
                 ip.quantity AS Quantity
             FROM tbIngredientsProducts ip
@@ -237,38 +238,25 @@ namespace unipos_basic_backend.src.Repositories
             try
             {
                 await using var conn = _db.CreateConnection();
-
-                const string sqlExist = @"SELECT 1 FROM tbIngredientsProducts WHERE id = @Id";
-                var exists = await conn.QueryFirstOrDefaultAsync<int>(sqlExist, new { productIngredient.Id });
-
-                if (exists != 1) return ResponseDTO.Failure(MessagesConstant.NotFound);
-
+                
                 var updates = new List<string>();
                 var parameters = new DynamicParameters();
 
                 parameters.Add("@Id", productIngredient.Id);
 
                 const string sqlExistIngredint = @"SELECT 1 FROM tbIngredientsProducts WHERE id = @Id AND ingredient_id = @IngredientId";
-                var existIngredient = await conn.QueryFirstOrDefaultAsync<bool>(sqlExistIngredint, new { productIngredient.Id, productIngredient.IngredientId });
+                var existIngredient = await conn.QueryFirstOrDefaultAsync<int>(sqlExistIngredint, new { productIngredient.Id, productIngredient.IngredientId });
 
-                if (!existIngredient)
+                if (existIngredient != 1)
                 {
                     updates.Add("ingredient_id = @IngredientId");
                     parameters.Add("@IngredientId", productIngredient.IngredientId);
                 }
 
-                updates.Add("package_size = @PackageSize");
-                parameters.Add("@PackageSize", productIngredient.PackageSize);
-
-                if (!string.IsNullOrWhiteSpace(productIngredient.UnitOfMeasure))
-                {
-                    updates.Add("unit_of_measure = @UnitOfMeasure");
-                    parameters.Add("@UnitOfMeasure", productIngredient.UnitOfMeasure);
-                }
-
                 updates.Add("quantity = @Quantity");
                 parameters.Add("@Quantity", productIngredient.Quantity);
                 
+                updates.Add("updated_at = NOW()");
                 if (updates.Count == 1) return ResponseDTO.Failure(MessagesConstant.NoChanges);
 
                 var sql = $@"UPDATE tbIngredientsProducts SET {string.Join(",", updates)} WHERE id = @Id";
