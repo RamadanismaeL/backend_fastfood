@@ -1,7 +1,7 @@
 using Dapper;
 using Npgsql;
 using unipos_basic_backend.src.Constants;
-using unipos_basic_backend.src.Data;
+using unipos_basic_backend.src.Services;
 using unipos_basic_backend.src.DTOs;
 using unipos_basic_backend.src.Interfaces;
 
@@ -113,6 +113,48 @@ namespace unipos_basic_backend.src.Repositories
                 _logger.LogError(ex, "Error deleting cash register");
                 return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
-        }        
+        }     
+
+        public async Task<IEnumerable<CashRegisterSelectUserDTO>> GetSelectUserToOpenCash()
+        {
+            const string sql = @"
+                SELECT DISTINCT ON (u.id)
+                    u.id AS Id,
+                    u.username AS Username
+                FROM tbUsers u
+                LEFT JOIN (
+                    SELECT DISTINCT ON (cr.user_id)
+                        cr.user_id,
+                        cr.status,
+                        cr.date_time
+                    FROM tbCashRegister cr
+                    ORDER BY cr.user_id, cr.date_time DESC
+                ) latest ON latest.user_id = u.id
+                WHERE latest.status = FALSE
+                OR latest.user_id IS NULL
+                ORDER BY u.id, u.username ASC";
+
+            await using var conn = _db.CreateConnection();
+            return (await conn.QueryAsync<CashRegisterSelectUserDTO>(sql)).AsList();
+        } 
+
+        public async Task<IEnumerable<CashRegisterSelectUserDTO>> GetSelectUserToCloseCash()
+        {
+            const string sql = @"
+                SELECT *
+                FROM (
+                    SELECT DISTINCT ON (cr.user_id)
+                        cr.id AS Id,
+                        u.username AS Username
+                    FROM tbCashRegister cr
+                    JOIN tbUsers u ON cr.user_id = u.id
+                    WHERE cr.status = TRUE
+                    ORDER BY cr.user_id, cr.date_time DESC
+                ) sub
+                ORDER BY Username ASC;";
+
+            await using var conn = _db.CreateConnection();
+            return (await conn.QueryAsync<CashRegisterSelectUserDTO>(sql)).AsList();
+        }   
     }
 }

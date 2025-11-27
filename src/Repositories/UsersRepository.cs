@@ -1,7 +1,7 @@
 using Dapper;
 using unipos_basic_backend.src.Configs;
 using unipos_basic_backend.src.Constants;
-using unipos_basic_backend.src.Data;
+using unipos_basic_backend.src.Services;
 using unipos_basic_backend.src.DTOs;
 using unipos_basic_backend.src.Interfaces;
 

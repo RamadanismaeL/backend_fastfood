@@ -1,7 +1,7 @@
 using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
-using unipos_basic_backend.src.Data;
+using unipos_basic_backend.src.Services;
 using unipos_basic_backend.src.Interfaces;
 using unipos_basic_backend.src.Repositories;
 

@@ -4,7 +4,7 @@ using Polly;
 using Polly.Retry;
 using unipos_basic_backend.src.Interfaces;
 
-namespace unipos_basic_backend.src.Data
+namespace unipos_basic_backend.src.Services
 {
     /// <summary>
     /// A robust, production-ready PostgreSQL database helper using Npgsql and Polly for resilience.

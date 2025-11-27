@@ -62,5 +62,19 @@ namespace unipos_basic_backend.src.Controllers
             await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
             return Ok(result);
         }
+
+        [HttpGet("v1/get-select-user-to-open-cash")]
+        public async Task<ActionResult<IEnumerable<CashRegisterSelectUserDTO>>> GetSelectUserToOpenCash()
+        {
+            var result = await _cashRegisterRep.GetSelectUserToOpenCash();
+            return Ok(result);
+        }
+
+        [HttpGet("v1/get-select-user-to-close-cash")]
+        public async Task<ActionResult<IEnumerable<CashRegisterSelectUserDTO>>> GetSelectUserToCloseCash()
+        {
+            var result = await _cashRegisterRep.GetSelectUserToCloseCash();
+            return Ok(result);
+        }
     }
 }
