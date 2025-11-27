@@ -164,6 +164,8 @@ namespace unipos_basic_backend.src.Repositories
 
                 var result = await conn.ExecuteAsync(sql, parameters);
 
+                if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+
                 return ResponseDTO.Success(MessagesConstant.Updated);
             }
             catch (Exception ex)

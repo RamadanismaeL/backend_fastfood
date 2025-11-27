@@ -14,6 +14,10 @@ namespace unipos_basic_backend.src.Constants
 
         public const string OperationFailed = "The operation could not be completed. Please try again.";
 
+        public const string CashOpened = "Cash register successfully opened. You may start processing sales.";
+        public const string CashOpenedError = "You already have an open cash register. Close the current one before opening a new one.";
+        public const string CashClosed = "Cash register closed successfully. Thank you for completing your shift.";
+
         public const string ServerError     = "An unexpected error occurred.";
         public const string Unauthorized    = "You are not authorised to perform this action.";
         public const string Forbidden       = "Access to this resource is forbidden.";        

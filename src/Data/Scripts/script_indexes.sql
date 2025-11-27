@@ -1,1 +1,0 @@
-CREATE INDEX idx_tbUsers_roles ON tbUsers(roles);

@@ -142,7 +142,7 @@ namespace unipos_basic_backend.src.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error deleting ingredient with ID: {id}");
+                _logger.LogError(ex, "Error deleting ingredient.");
                 return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
         }    
