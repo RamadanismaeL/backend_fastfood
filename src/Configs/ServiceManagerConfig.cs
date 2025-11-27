@@ -101,7 +101,7 @@ namespace unipos_basic_backend.src.Configs
                     op.AddPolicy("CorsPolicy",
                     c =>
                     {
-                        c.WithOrigins(audience, "file://")
+                        c.WithOrigins(audience)
                         .AllowAnyMethod()
                         .AllowAnyHeader()
                         .AllowCredentials();
