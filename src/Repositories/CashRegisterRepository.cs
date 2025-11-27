@@ -17,15 +17,31 @@ namespace unipos_basic_backend.src.Repositories
             const string sql = @"
                 SELECT
                     cr.id AS Id,
+                    u.username AS Operator,
                     cr.status AS Status,
+                    cr.opening_balance AS OpeningBalance,
                     cr.opened_at AS OpenedAt,
-                    cr.opening_balance AS OpeningBalance,  
-                    cr.closing_balance AS ClosingBalance,  
-                    cr.closed_at AS ClosedAt,    
-                    u.username AS Operator
+                    COALESCE(SUM(crd.amount) FILTER (
+                        WHERE crd.cash_name = 'Cash In' AND crd.status = TRUE
+                    ), 0.00) AS TotalCashIn,
+                    COALESCE(SUM(crd.amount) FILTER (
+                        WHERE crd.cash_name = 'Cash Out' AND crd.status = TRUE
+                    ), 0.00) AS TotalCashOut,
+                    cr.closed_at AS ClosedAt,
+                    cr.closing_balance AS ClosingBalance
                 FROM tbCashRegister cr
                 JOIN tbUsers u ON cr.user_id = u.id
-                ORDER BY cr.date_time DESC";
+                LEFT JOIN tbCashRegisterDetails crd 
+                    ON cr.id = crd.cash_register_id
+                GROUP BY
+                    cr.id,
+                    u.username,
+                    cr.status,
+                    cr.opening_balance,
+                    cr.opened_at,
+                    cr.closed_at,
+                    cr.closing_balance
+                ORDER BY cr.date_time DESC;";
 
             await using var conn = _db.CreateConnection();
             return (await conn.QueryAsync<CashRegisterListDTO>(sql)).AsList();
@@ -156,5 +172,91 @@ namespace unipos_basic_backend.src.Repositories
             await using var conn = _db.CreateConnection();
             return (await conn.QueryAsync<CashRegisterSelectUserDTO>(sql)).AsList();
         }   
+
+        public async Task<IEnumerable<CashRegisterDetailListDTO>> GetAllDetails(Guid cashRegisterId)
+        {
+            const string sql = @"
+                SELECT
+                    crd.id As Id,
+                    crd.cash_name AS CashName,
+                    crd.amount AS Amount,
+                    crd.description AS Description,
+                    crd.status AS Status,
+                    crd.created_at AS CreatedAt,
+                    crd.updated_at AS UpdatedAt
+                FROM tbCashRegister cr
+                JOIN tbCashRegisterDetails crd ON cr.id = crd.cash_register_id
+                WHERE cr.id = @Id
+                ORDER BY crd.date_time DESC";
+
+            await using var conn = _db.CreateConnection();
+            return (await conn.QueryAsync<CashRegisterDetailListDTO>(sql, new { Id = cashRegisterId })).AsList();
+        }   
+
+        public async Task<ResponseDTO> CreateCashDetails(CashRegisterDetailCreateDTO cashRegister)
+        {
+            try
+            {
+                await using var conn = _db.CreateConnection();
+
+                const string sql = @"INSERT INTO tbCashRegisterDetails (cash_register_id, cash_name, amount, description, date_time) VALUES (@CashRegisterId, @CashName, @Amount, @Description, @DateTime)";
+
+                var parameters = new
+                {
+                    cashRegister.CashRegisterId,
+                    cashRegister.CashName,
+                    cashRegister.Amount,
+                    cashRegister.Description,
+                    DateTime = DateTime.UtcNow
+                };
+
+                var result = await conn.ExecuteAsync(sql, parameters);
+
+                if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+
+                return ResponseDTO.Success(MessagesConstant.Created);
+            }
+            catch (PostgresException pgEx) when (pgEx.SqlState == "23505")
+            {
+                return ResponseDTO.Failure(MessagesConstant.CashOpenedError);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, " - Failed to create cash register details.");
+                return ResponseDTO.Failure(MessagesConstant.ServerError);
+            }
+        }
+
+        public async Task<ResponseDTO> UpdateCashDetails(CashRegisterDetailUpdateDTO cashRegister)
+        {
+            try
+            {
+                await using var conn = _db.CreateConnection();
+
+                const string sqlExist = @"SELECT 1 FROM tbCashRegisterDetails WHERE id = @Id";
+                var exists = await conn.QueryFirstOrDefaultAsync<int>(sqlExist, new { cashRegister.Id });
+
+                if (exists != 1) return ResponseDTO.Failure(MessagesConstant.NotFound);
+
+                var sql = @"UPDATE tbCashRegisterDetails SET status = @Status, updated_at = NOW(), date_time = NOW() WHERE id = @Id";
+
+                var parameters = new
+                {
+                    cashRegister.Id,
+                    cashRegister.Status
+                };
+
+                var result = await conn.ExecuteAsync(sql, parameters);
+
+                if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+
+                return ResponseDTO.Success(MessagesConstant.Updated);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, " - Failed to update cash register detail.");
+                return ResponseDTO.Failure(MessagesConstant.ServerError);
+            }
+        }
     }
 }

@@ -11,5 +11,8 @@ namespace unipos_basic_backend.src.Interfaces
         Task<IActionResult> DeleteAsync([FromRoute] Guid id);
         Task<ActionResult<IEnumerable<CashRegisterSelectUserDTO>>> GetSelectUserToOpenCash();
         Task<ActionResult<IEnumerable<CashRegisterSelectUserDTO>>> GetSelectUserToCloseCash();
+        Task<ActionResult<IEnumerable<CashRegisterDetailListDTO>>> GetAllDetails([FromRoute] Guid cashRegisterId);
+        Task<IActionResult> CreateCashDetails([FromBody] CashRegisterDetailCreateDTO cashRegister);
+        Task<IActionResult> UpdateCashDetails([FromBody] CashRegisterDetailUpdateDTO cashRegister);
     }
 }

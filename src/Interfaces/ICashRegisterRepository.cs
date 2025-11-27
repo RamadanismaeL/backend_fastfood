@@ -10,5 +10,8 @@ namespace unipos_basic_backend.src.Interfaces
         Task<ResponseDTO> DeleteAsync(Guid id);
         Task<IEnumerable<CashRegisterSelectUserDTO>> GetSelectUserToOpenCash();
         Task<IEnumerable<CashRegisterSelectUserDTO>> GetSelectUserToCloseCash();
+        Task<IEnumerable<CashRegisterDetailListDTO>> GetAllDetails(Guid cashRegisterId);
+        Task<ResponseDTO> CreateCashDetails(CashRegisterDetailCreateDTO cashRegister);
+        Task<ResponseDTO> UpdateCashDetails(CashRegisterDetailUpdateDTO cashRegister);
     }
 }
