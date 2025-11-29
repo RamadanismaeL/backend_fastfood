@@ -9,9 +9,9 @@ namespace unipos_basic_backend.src.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class CustomerController (ICustomerRepository customerRepository, IHubContext<NotificationHub> hubContext) : ControllerBase, ICustomerController
+    public class CustomersController (ICustomersRepository customerRepository, IHubContext<NotificationHub> hubContext) : ControllerBase, ICustomersController
     {
-        private readonly ICustomerRepository _customerRepository = customerRepository;
+        private readonly ICustomersRepository _customerRepository = customerRepository;
         private readonly IHubContext<NotificationHub> _hubContext = hubContext;
 
         [HttpGet("v1/get-all")]

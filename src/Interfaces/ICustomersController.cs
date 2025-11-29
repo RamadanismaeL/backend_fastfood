@@ -3,7 +3,7 @@ using unipos_basic_backend.src.DTOs;
 
 namespace unipos_basic_backend.src.Interfaces
 {
-    public interface ICustomerController
+    public interface ICustomersController
     {
         Task<ActionResult<IEnumerable<CustomerListDTO>>> GetAllAsync();
         Task<IActionResult> CreateAsync([FromBody] CustomerCreateDTO customer);

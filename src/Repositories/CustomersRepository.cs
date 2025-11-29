@@ -6,10 +6,10 @@ using unipos_basic_backend.src.Services;
 
 namespace unipos_basic_backend.src.Repositories
 {
-    public sealed class CustomerRepository(PostgresDb db, ILogger<CustomerRepository> logger) : ICustomerRepository
+    public sealed class CustomersRepository(PostgresDb db, ILogger<CustomersRepository> logger) : ICustomersRepository
     {
         private readonly PostgresDb _db = db;
-        private readonly ILogger<CustomerRepository> _logger = logger;
+        private readonly ILogger<CustomersRepository> _logger = logger;
 
         public async Task<IEnumerable<CustomerListDTO>> GetAllAsync()
         {
@@ -27,11 +27,6 @@ namespace unipos_basic_backend.src.Repositories
             try
             {
                 await using var conn = _db.CreateConnection();
-
-                const string sqlExist = @"SELECT 1 FROM tbCustomers WHERE fullname = @FullName";
-                var exists = await conn.QueryFirstOrDefaultAsync<int>(sqlExist, new {customer.FullName});
-
-                if (exists == 1) return ResponseDTO.Failure(MessagesConstant.AlreadyExists);
 
                 const string sqlInsert = @"INSERT INTO tbCustomers (fullname, phone_number, order_qty)
                 VALUES (@FullName, @PhoneNumber, @OrderQty)";
