@@ -7,5 +7,6 @@ namespace unipos_basic_backend.src.Interfaces
     {
         Task<ActionResult<IEnumerable<OrdersListDTO>>> GetAllAsync();
         Task<IActionResult> CreateAsync([FromBody] OrdersCreateDTO order);
+        Task<IActionResult> CreatePayNow([FromBody] OrdersCreatePayNowDTO orderPayNow);
     }
 }

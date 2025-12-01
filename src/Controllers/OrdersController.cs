@@ -36,5 +36,19 @@ namespace unipos_basic_backend.src.Controllers
             await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
             return Ok(result);
         }
+
+        [HttpPost("v1/create-pay-now")]
+        public async Task<IActionResult> CreatePayNow([FromBody] OrdersCreatePayNowDTO orderPayNow)
+        {
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
+
+            var result = await _ordersRepository.CreatePayNow(orderPayNow);
+
+            if (!result.IsSuccess)
+                return result.Message == MessagesConstant.AlreadyExists ? Conflict(result) : BadRequest(result);
+
+            await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
+            return Ok(result);
+        }
     }
 }

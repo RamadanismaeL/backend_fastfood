@@ -6,5 +6,6 @@ namespace unipos_basic_backend.src.Interfaces
     {
         Task<IEnumerable<OrdersListDTO>> GetAllAsync();
         Task<ResponseDTO> CreateAsync(OrdersCreateDTO order);
+        Task<ResponseDTO> CreatePayNow(OrdersCreatePayNowDTO orderPayNow);
     }
 }

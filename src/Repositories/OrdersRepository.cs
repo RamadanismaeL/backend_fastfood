@@ -63,10 +63,11 @@ namespace unipos_basic_backend.src.Repositories
                     RETURNING id;
                     """;
 
-                var customerId = await conn.ExecuteScalarAsync<Guid>(
+                var customerId = await conn.ExecuteScalarAsync<Guid>( 
                     sqlInsertCustomer,
                     new { order.CustomerFullName, order.CustomerPhoneNumber },
-                    tx);
+                    tx
+                );
 
                 // Reusable queries
                 const string sqlGetPrice = """
@@ -152,6 +153,165 @@ namespace unipos_basic_backend.src.Repositories
                 await tx.RollbackAsync();
                 _logger.LogError(ex, "Failed to create order for customer {FullName} ({Phone})", 
                     order.CustomerFullName, order.CustomerPhoneNumber);
+                return ResponseDTO.Failure(MessagesConstant.ServerError);
+            }
+        }
+
+        public async Task<ResponseDTO> CreatePayNow(OrdersCreatePayNowDTO orderPayNow)
+        {
+            await using var conn = _db.CreateConnection();
+
+            await using var tx = await conn.BeginTransactionAsync();
+
+            try
+            {
+                // Insert customer and retrieve generated ID
+                const string sqlInsertCustomer = """
+                    INSERT INTO tbCustomers (total_paid, total_change)
+                    VALUES (@TotalPaid, @TotalChange)
+                    RETURNING id;
+                    """;
+
+                var customerId = await conn.ExecuteScalarAsync<Guid>( 
+                    sqlInsertCustomer,
+                    new { orderPayNow.TotalPaid, orderPayNow.TotalChange },
+                    tx
+                );
+
+                const string sqlExistCustomer = @"SELECT 1 FROM tbCustomers WHERE id = @Id";
+                var checkIfExist = await conn.QueryFirstOrDefaultAsync<int>(sqlExistCustomer, new { Id = customerId });
+                if (checkIfExist != 1) return ResponseDTO.Failure(MessagesConstant.NotFound);
+
+                const string sqlInsertPymt = @"INSERT INTO tbPaymentOrders (customer_id, method, amount) VALUES (@CustomerId, @Method::pymt_method, @Amount)";
+
+                if (orderPayNow.Method!.Cash is not null)
+                {
+                    var parameters = new
+                    {
+                        CustomerId = customerId,
+                        Method = "cash",
+                        Amount = orderPayNow.Method.Cash
+                    };
+
+                    var result = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
+
+                    if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+                }
+
+
+                if (orderPayNow.Method!.EMola is not null)
+                {
+                    var parameters = new
+                    {
+                        CustomerId = customerId,
+                        Method = "eMola",
+                        Amount = orderPayNow.Method.EMola
+                    };
+
+                    var result = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
+
+                    if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+                }
+
+
+                if (orderPayNow.Method!.MPesa is not null)
+                {
+                    var parameters = new
+                    {
+                        CustomerId = customerId,
+                        Method = "mPesa",
+                        Amount = orderPayNow.Method.MPesa
+                    };
+
+                    var result = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
+
+                    if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+                }
+
+                // Reusable queries
+                const string sqlGetPrice = """
+                    SELECT price FROM tbProducts WHERE id = @ProductId LIMIT 1;
+                    """;
+
+                const string sqlGetIngredients = """
+                    SELECT
+                        ip.ingredient_id,
+                        ip.quantity,
+                        i.item_name || ' ' || i.package_size || '' || i.unit_of_measure AS ItemName
+                    FROM tbIngredientsProducts ip
+                    JOIN tbIngredients i ON i.id = ip.ingredient_id
+                    WHERE product_id = @ProductId;
+                    """;
+
+                const string sqlCheckStock = """
+                    SELECT quantity FROM tbIngredients WHERE id = @IngredientId FOR UPDATE;
+                    """;
+
+                const string sqlConsumeStock = """
+                    UPDATE tbIngredients 
+                    SET quantity = quantity - @QtyUsed, updated_at = NOW() 
+                    WHERE id = @IngredientId;
+                    """;
+
+                const string sqlInsertOrderItem = """
+                    INSERT INTO tbOrders (customer_id, product_id, quantity, unit_price, status)
+                    VALUES (@CustomerId, @ProductId, @Quantity, @Price, 'paid');
+                    """;
+
+                if (orderPayNow.OrderItems?.Any() != true)
+                    return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+
+                foreach (var item in orderPayNow.OrderItems)
+                {
+                    // 1. Get unit price
+                    var unitPrice = await conn.ExecuteScalarAsync<decimal>(
+                        sqlGetPrice, new { item.ProductId }, tx);
+
+                    if (unitPrice <= 0)
+                        return ResponseDTO.Failure(MessagesConstant.NotFound);
+
+                    // 2. Load required ingredients
+                    var ingredients = await conn.QueryAsync<(Guid IngredientId, decimal RequiredQty, string ItemName)>(
+                        sqlGetIngredients, new { item.ProductId }, tx);
+
+                    // 3. Check & lock stock + consume atomically
+                    foreach (var ing in ingredients)
+                    {
+                        var qtyNeeded = ing.RequiredQty * item.Quantity;
+
+                        var currentStock = await conn.ExecuteScalarAsync<decimal>(
+                            sqlCheckStock, new { ing.IngredientId }, tx);
+
+                        if (currentStock < qtyNeeded)
+                            return ResponseDTO.Failure($"Insufficient stock for ingredient {ing.ItemName}. Required: {qtyNeeded}, Available: {currentStock}");
+
+                        await conn.ExecuteAsync(
+                            sqlConsumeStock,
+                            new { ing.IngredientId, QtyUsed = qtyNeeded },
+                            tx);
+                    }
+
+                    // 4. Persist order item
+                    await conn.ExecuteAsync(
+                        sqlInsertOrderItem,
+                        new
+                        {
+                            CustomerId = customerId,
+                            item.ProductId,
+                            item.Quantity,
+                            Price = unitPrice
+                        },
+                        tx
+                    );
+                }
+
+                await tx.CommitAsync();
+                return ResponseDTO.Success(MessagesConstant.Created);
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+                _logger.LogError(ex, "Failed to create order-pay-now for customer)");
                 return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
         }
