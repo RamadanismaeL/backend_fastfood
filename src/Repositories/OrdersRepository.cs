@@ -20,26 +20,27 @@ namespace unipos_basic_backend.src.Repositories
                     c.phone_number AS PhoneNumber,
                     
                     STRING_AGG(DISTINCT p.item_name, '  ••  ') 
-                        FILTER (WHERE o.status IN (1, 2)) 
                         AS Description,
 
-                    COALESCE(SUM(o.quantity) FILTER (WHERE o.status IN (1, 2)), 0)     AS TotalQty,
+                    COALESCE(SUM(o.quantity) FILTER (WHERE o.status IN ('pending', 'paid')), 0)     AS TotalQty,
 
-                    COALESCE(SUM(o.total_to_pay) FILTER (WHERE o.status IN (1, 2)), 0) AS TotalPay,
+                    COALESCE(SUM(o.total_to_pay) FILTER (WHERE o.status IN ('pending', 'paid')), 0) AS TotalPay,
 
-                    MAX(o.created_at) FILTER (WHERE o.status IN (1, 2))               AS CreatedAt
+                    o.status,
+
+                    MAX(o.created_at) FILTER (WHERE o.status IN ('pending', 'paid'))               AS CreatedAt
 
                 FROM tbCustomers c
                 LEFT JOIN tbOrders o 
                     ON o.customer_id = c.id 
-                AND o.status IN (1, 2)
                 LEFT JOIN tbProducts p 
                     ON p.id = o.product_id
 
                 GROUP BY 
                     c.id, 
                     c.fullName, 
-                    c.phone_number
+                    c.phone_number,
+                    o.status
 
                 ORDER BY 
                     CreatedAt DESC NULLS LAST";
@@ -93,7 +94,7 @@ namespace unipos_basic_backend.src.Repositories
                     """;
 
                 const string sqlInsertOrderItem = """
-                    INSERT INTO tbOrders (customer_id, product_id, quantity, price)
+                    INSERT INTO tbOrders (customer_id, product_id, quantity, unit_price)
                     VALUES (@CustomerId, @ProductId, @Quantity, @Price);
                     """;
 
@@ -138,7 +139,7 @@ namespace unipos_basic_backend.src.Repositories
                             CustomerId = customerId,
                             ProductId = item.ProductId,
                             Quantity = item.Quantity,
-                            Price = unitPrice * item.Quantity
+                            Price = unitPrice
                         },
                         tx);
                 }
