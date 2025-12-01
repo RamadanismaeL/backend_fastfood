@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using unipos_basic_backend.src.Constants;
@@ -7,6 +8,7 @@ using unipos_basic_backend.src.Repositories;
 
 namespace unipos_basic_backend.src.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class CustomersController (ICustomersRepository customerRepository, IHubContext<NotificationHub> hubContext) : ControllerBase, ICustomersController

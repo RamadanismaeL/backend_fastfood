@@ -33,6 +33,7 @@ namespace unipos_basic_backend.src.Configs
                 service.AddScoped<IProductsRepository, ProductsRepository>();
                 service.AddScoped<ICashRegisterRepository, CashRegisterRepository>();
                 service.AddScoped<ICustomersRepository, CustomersRepository>();
+                service.AddScoped<IOrdersRepository, OrdersRepository>();
 
                 // Rate limitting: Sliding Windows
                 service.AddRateLimiter(op =>
