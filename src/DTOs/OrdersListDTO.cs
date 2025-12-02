@@ -8,6 +8,8 @@ namespace unipos_basic_backend.src.DTOs
         public string Description { get; set; } = string.Empty;
         public int TotalQty { get; set; }
         public decimal TotalPay { get; set; }
+        public decimal TotalPaid { get; set; }
+        public decimal TotalChange { get; set; }
         public OrderStatusEnum Status { get; set; }
         public DateTime CreatedAt { get; set; }
     }

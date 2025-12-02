@@ -50,5 +50,12 @@ namespace unipos_basic_backend.src.Controllers
             await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
             return Ok(result);
         }
+
+        [HttpGet("v1/get-receipt-number")]
+        public async Task<ActionResult<string>> GetReceiptNumber()
+        {
+            var result = await _ordersRepository.GetReceiptNumber();
+            return Ok(new { receiptNumber = result });
+        }
     }
 }

@@ -1,4 +1,5 @@
 using Dapper;
+using Npgsql;
 using unipos_basic_backend.src.Constants;
 using unipos_basic_backend.src.DTOs;
 using unipos_basic_backend.src.Interfaces;
@@ -25,7 +26,9 @@ namespace unipos_basic_backend.src.Repositories
                     COALESCE(SUM(o.quantity) FILTER (WHERE o.status IN ('pending', 'paid')), 0)     AS TotalQty,
 
                     COALESCE(SUM(o.total_to_pay) FILTER (WHERE o.status IN ('pending', 'paid')), 0) AS TotalPay,
-
+                    
+                    c.total_paid AS TotalPaid,
+                    c.total_change AS TotalChange,
                     o.status,
 
                     MAX(o.created_at) FILTER (WHERE o.status IN ('pending', 'paid'))               AS CreatedAt
@@ -128,7 +131,7 @@ namespace unipos_basic_backend.src.Repositories
 
                         await conn.ExecuteAsync(
                             sqlConsumeStock,
-                            new { IngredientId = ing.IngredientId, QtyUsed = qtyNeeded },
+                            new { ing.IngredientId, QtyUsed = qtyNeeded },
                             tx);
                     }
 
@@ -253,10 +256,10 @@ namespace unipos_basic_backend.src.Repositories
                     WHERE id = @IngredientId;
                     """;
 
-                const string sqlInsertOrderItem = """
+                const string sqlInsertOrderItem = @"
                     INSERT INTO tbOrders (customer_id, product_id, quantity, unit_price, status)
-                    VALUES (@CustomerId, @ProductId, @Quantity, @Price, 'paid');
-                    """;
+                    VALUES (@CustomerId, @ProductId, @Quantity, @Price, @Status::order_status);
+                    ";
 
                 if (orderPayNow.OrderItems?.Any() != true)
                     return ResponseDTO.Failure(MessagesConstant.OperationFailed);
@@ -299,7 +302,8 @@ namespace unipos_basic_backend.src.Repositories
                             CustomerId = customerId,
                             item.ProductId,
                             item.Quantity,
-                            Price = unitPrice
+                            Price = unitPrice,
+                            Status = "paid"
                         },
                         tx
                     );
@@ -308,6 +312,12 @@ namespace unipos_basic_backend.src.Repositories
                 await tx.CommitAsync();
                 return ResponseDTO.Success(MessagesConstant.Created);
             }
+            catch (PostgresException pex)
+            {
+                await tx.RollbackAsync();
+                _logger.LogError(pex, "Database error during CreatePayNow for customer");
+                return ResponseDTO.Failure("Database error: " + pex.MessageText);
+            }
             catch (Exception ex)
             {
                 await tx.RollbackAsync();
@@ -315,5 +325,63 @@ namespace unipos_basic_backend.src.Repositories
                 return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
         }
+
+        public async Task<string> GetReceiptNumber()
+        {
+            try
+            {
+                await using var conn = _db.CreateConnection();
+
+                const string sql = @"SELECT COUNT(*) AS total FROM tbCustomers";
+
+                var result = await conn.QueryFirstOrDefaultAsync<int>(sql);
+
+                return $"{result + 1:D7}";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to generate Receipt Number.");
+                throw new InvalidOperationException("Failed to generate Receipt Number");
+            }
+        }
+
+        public async Task<ResponseDTO> UpdateAsync(OrdersUpdatePayNowDTO order)
+        {
+            await using var conn = _db.CreateConnection();
+
+            await using var tx = await conn.BeginTransactionAsync();
+
+            try
+            {
+                const string sqlExist = @"SELECT 1 FROM tbCustomers WHERE id = @Id";
+                var exists = await conn.QueryFirstOrDefaultAsync<int>(sqlExist, new { order.Id });
+
+                if (exists != 1) return ResponseDTO.Failure(MessagesConstant.NotFound);
+
+                const string sqlUpdateCostomer = @"UPDATE tbCustomer SET total_paid = @TotalPaid, total_change = @TotalChange WHERE id = @Id";
+                
+                var result = await conn.ExecuteAsync(
+                    sqlUpdateCostomer,
+                    new { order.TotalPaid, order.TotalChange, order.Id },
+                    tx
+                );
+
+                if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+                
+                return ResponseDTO.Success(MessagesConstant.Updated);
+            }
+            catch (PostgresException pex)
+            {
+                await tx.RollbackAsync();
+                _logger.LogError(pex, "Database error during UpdatePayNow for customer");
+                return ResponseDTO.Failure("Database error: " + pex.MessageText);
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+                _logger.LogError(ex, "Failed to update order-pay-now for customer)");
+                return ResponseDTO.Failure(MessagesConstant.ServerError);
+            }
+            }
     }
 }
