@@ -57,5 +57,19 @@ namespace unipos_basic_backend.src.Controllers
             var result = await _ordersRepository.GetReceiptNumber();
             return Ok(new { receiptNumber = result });
         }
+
+        [HttpPut("v1/update")]
+        public async Task<IActionResult> UpdateAsync(OrdersUpdatePayNowDTO order)
+        {
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
+
+            var result = await _ordersRepository.UpdateAsync(order);
+
+            if (!result.IsSuccess)
+                return result.Message == MessagesConstant.NotFound ? NotFound(result) : BadRequest(result);
+
+            await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
+            return Ok(result);
+        }
     }
 }

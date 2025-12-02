@@ -187,7 +187,7 @@ namespace unipos_basic_backend.src.Repositories
 
                 const string sqlInsertPymt = @"INSERT INTO tbPaymentOrders (customer_id, method, amount) VALUES (@CustomerId, @Method::pymt_method, @Amount)";
 
-                if (orderPayNow.Method!.Cash is not null)
+                if (orderPayNow.Method!.Cash is not null && orderPayNow.Method!.Cash != 0)
                 {
                     var parameters = new
                     {
@@ -202,7 +202,7 @@ namespace unipos_basic_backend.src.Repositories
                 }
 
 
-                if (orderPayNow.Method!.EMola is not null)
+                if (orderPayNow.Method!.EMola is not null && orderPayNow.Method!.EMola != 0)
                 {
                     var parameters = new
                     {
@@ -217,7 +217,7 @@ namespace unipos_basic_backend.src.Repositories
                 }
 
 
-                if (orderPayNow.Method!.MPesa is not null)
+                if (orderPayNow.Method!.MPesa is not null && orderPayNow.Method!.MPesa != 0)
                 {
                     var parameters = new
                     {
@@ -358,16 +358,78 @@ namespace unipos_basic_backend.src.Repositories
 
                 if (exists != 1) return ResponseDTO.Failure(MessagesConstant.NotFound);
 
-                const string sqlUpdateCostomer = @"UPDATE tbCustomer SET total_paid = @TotalPaid, total_change = @TotalChange WHERE id = @Id";
+                const string sqlUpdateCustomer = @"UPDATE tbCustomers SET total_paid = @TotalPaid, total_change = @TotalChange WHERE id = @CustomerId";
                 
                 var result = await conn.ExecuteAsync(
-                    sqlUpdateCostomer,
-                    new { order.TotalPaid, order.TotalChange, order.Id },
+                    sqlUpdateCustomer,
+                    new {  order.TotalPaid, order.TotalChange, CustomerId = order.Id },
                     tx
                 );
 
                 if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+
+                const string sqlGetOrdersId = @"SELECT id FROM tbOrders WHERE customer_id = @CustomerId";
+
+                const string sqlUpdateOrders = @"UPDATE tbOrders SET status = @Status::order_status WHERE id = @OrderId";
+
+                var ordersIDs = await conn.QueryAsync<Guid>(sqlGetOrdersId, new { CustomerId = order.Id });
+
+                foreach (var id in ordersIDs)
+                {
+                    await conn.ExecuteAsync(
+                        sqlUpdateOrders,
+                        new { Status = "paid", OrderId = id },
+                        tx
+                    );
+                }
+
+                const string sqlInsertPymt = @"INSERT INTO tbPaymentOrders (customer_id, method, amount) VALUES (@CustomerId, @Method::pymt_method, @Amount)";
+
+                if (order.Method!.Cash is not null && order.Method!.Cash != 0)
+                {
+                    var parameters = new
+                    {
+                        CustomerId = order.Id,
+                        Method = "cash",
+                        Amount = order.Method.Cash
+                    };
+
+                    var results = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
+
+                    if (results == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+                }
+
+
+                if (order.Method!.EMola is not null && order.Method!.EMola != 0)
+                {
+                    var parameters = new
+                    {
+                        CustomerId = order.Id,
+                        Method = "eMola",
+                        Amount = order.Method.EMola
+                    };
+
+                    var results = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
+
+                    if (results == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+                }
+
+
+                if (order.Method!.MPesa is not null && order.Method!.MPesa != 0)
+                {
+                    var parameters = new
+                    {
+                        CustomerId = order.Id,
+                        Method = "mPesa",
+                        Amount = order.Method.MPesa
+                    };
+
+                    var results = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
+
+                    if (results == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+                }                
                 
+                await tx.CommitAsync();
                 return ResponseDTO.Success(MessagesConstant.Updated);
             }
             catch (PostgresException pex)
@@ -382,6 +444,6 @@ namespace unipos_basic_backend.src.Repositories
                 _logger.LogError(ex, "Failed to update order-pay-now for customer)");
                 return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
-            }
+        }
     }
 }

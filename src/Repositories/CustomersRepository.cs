@@ -14,7 +14,7 @@ namespace unipos_basic_backend.src.Repositories
         public async Task<IEnumerable<CustomerListDTO>> GetAllAsync()
         {
             const string sql = @"
-                SELECT id, fullname AS FullName, phone_number AS phoneNumber, order_qty AS OrderQty, created_at AS createdAt
+                SELECT id, fullname AS FullName, phone_number AS phoneNumber, created_at AS createdAt
                 FROM tbCustomers
                 ORDER BY created_at DESC";
 
@@ -28,14 +28,13 @@ namespace unipos_basic_backend.src.Repositories
             {
                 await using var conn = _db.CreateConnection();
 
-                const string sqlInsert = @"INSERT INTO tbCustomers (fullname, phone_number, order_qty)
-                VALUES (@FullName, @PhoneNumber, @OrderQty)";
+                const string sqlInsert = @"INSERT INTO tbCustomers (fullname, phone_number)
+                VALUES (@FullName, @PhoneNumber)";
 
                 var parameters = new
                 {
                     customer.FullName,
-                    customer.PhoneNumber,
-                    customer.OrderQty
+                    customer.PhoneNumber
                 };
 
                 var result = await conn.ExecuteAsync(sqlInsert, parameters);
@@ -79,9 +78,6 @@ namespace unipos_basic_backend.src.Repositories
                     updates.Add("phone_number = @PhoneNumber");
                     parameters.Add("@PhoneNumber", customer.PhoneNumber);
                 }
-
-                updates.Add("order_qty = @OrderQty");
-                parameters.Add("@OrderQty", customer.OrderQty);
 
                 updates.Add("updated_at = NOW()");
 

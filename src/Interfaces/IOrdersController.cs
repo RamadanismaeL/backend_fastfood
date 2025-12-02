@@ -9,5 +9,6 @@ namespace unipos_basic_backend.src.Interfaces
         Task<IActionResult> CreateAsync([FromBody] OrdersCreateDTO order);
         Task<IActionResult> CreatePayNow([FromBody] OrdersCreatePayNowDTO orderPayNow);
         Task<ActionResult<string>> GetReceiptNumber();
+        Task<IActionResult> UpdateAsync(OrdersUpdatePayNowDTO order);
     }
 }

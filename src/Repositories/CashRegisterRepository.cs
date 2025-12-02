@@ -16,32 +16,29 @@ namespace unipos_basic_backend.src.Repositories
         {
             const string sql = @"
                 SELECT
-                    cr.id AS Id,
+                    cr.id,
                     u.username AS Operator,
-                    cr.status AS Status,
-                    cr.opening_balance AS OpeningBalance,
-                    cr.opened_at AS OpenedAt,
-                    COALESCE(SUM(crd.amount) FILTER (
-                        WHERE crd.cash_name = 'Cash In' AND crd.status = TRUE
-                    ), 0.00) AS TotalCashIn,
-                    COALESCE(SUM(crd.amount) FILTER (
-                        WHERE crd.cash_name = 'Cash Out' AND crd.status = TRUE
-                    ), 0.00) AS TotalCashOut,
-                    cr.closed_at AS ClosedAt,
-                    cr.closing_balance AS ClosingBalance
+                    cr.is_opened AS Status,
+                    COALESCE(MAX(crd.amount) FILTER (
+                        WHERE crd.cash_name = 'opened' AND crd.is_confirmed = TRUE
+                    ), 0.00) AS TotalOpened,
+                    COALESCE(MAX(crd.amount) FILTER (
+                        WHERE crd.cash_name = 'closed' AND crd.is_confirmed = TRUE
+                    ), 0.00) AS TotalClosed,
+                    MAX(crd.created_at) FILTER (
+                        WHERE crd.cash_name = 'opened' AND crd.is_confirmed = TRUE
+                    ) AS OpenedAt,    
+                    MAX(crd.created_at) FILTER (
+                        WHERE crd.cash_name = 'closed' AND crd.is_confirmed = TRUE
+                    ) AS ClosedAt
                 FROM tbCashRegister cr
                 JOIN tbUsers u ON cr.user_id = u.id
-                LEFT JOIN tbCashRegisterDetails crd 
-                    ON cr.id = crd.cash_register_id
+                LEFT JOIN tbCashRegisterDetails crd ON cr.id = crd.cash_register_id
                 GROUP BY
                     cr.id,
                     u.username,
-                    cr.status,
-                    cr.opening_balance,
-                    cr.opened_at,
-                    cr.closed_at,
-                    cr.closing_balance
-                ORDER BY cr.date_time DESC;";
+                    cr.is_opened
+                ORDER BY MAX(crd.date_time) DESC NULLS LAST";
 
             await using var conn = _db.CreateConnection();
             return (await conn.QueryAsync<CashRegisterListDTO>(sql)).AsList();
@@ -135,20 +132,25 @@ namespace unipos_basic_backend.src.Repositories
         {
             const string sql = @"
                 SELECT DISTINCT ON (u.id)
-                    u.id AS Id,
-                    u.username AS Username
+                    u.id,
+                    u.username
                 FROM tbUsers u
                 LEFT JOIN (
                     SELECT DISTINCT ON (cr.user_id)
                         cr.user_id,
-                        cr.status,
-                        cr.date_time
+                        cr.is_opened
                     FROM tbCashRegister cr
-                    ORDER BY cr.user_id, cr.date_time DESC
-                ) latest ON latest.user_id = u.id
-                WHERE latest.status = FALSE
-                OR latest.user_id IS NULL
-                ORDER BY u.id, u.username ASC";
+                    JOIN tbCashRegisterDetails crd 
+                        ON cr.id = crd.cash_register_id
+                    ORDER BY cr.user_id, crd.date_time DESC
+                ) latest 
+                    ON latest.user_id = u.id
+                WHERE 
+                    latest.is_opened = FALSE
+                    OR latest.user_id IS NULL
+                ORDER BY 
+                    u.id,
+                    u.username ASC";
 
             await using var conn = _db.CreateConnection();
             return (await conn.QueryAsync<CashRegisterSelectUserDTO>(sql)).AsList();
@@ -164,10 +166,10 @@ namespace unipos_basic_backend.src.Repositories
                         u.username AS Username
                     FROM tbCashRegister cr
                     JOIN tbUsers u ON cr.user_id = u.id
-                    WHERE cr.status = TRUE
-                    ORDER BY cr.user_id, cr.date_time DESC
+                    WHERE cr.is_opened = TRUE
+                    ORDER BY cr.user_id DESC
                 ) sub
-                ORDER BY Username ASC;";
+                ORDER BY Username ASC";
 
             await using var conn = _db.CreateConnection();
             return (await conn.QueryAsync<CashRegisterSelectUserDTO>(sql)).AsList();
