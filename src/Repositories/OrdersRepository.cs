@@ -163,7 +163,6 @@ namespace unipos_basic_backend.src.Repositories
         public async Task<ResponseDTO> CreatePayNow(OrdersCreatePayNowDTO orderPayNow)
         {
             await using var conn = _db.CreateConnection();
-
             await using var tx = await conn.BeginTransactionAsync();
 
             try

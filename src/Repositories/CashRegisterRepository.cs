@@ -46,31 +46,48 @@ namespace unipos_basic_backend.src.Repositories
 
         public async Task<ResponseDTO> OpenRegisterAsync(CashRegisterOpenDTO cashRegister)
         {
+            await using var conn = _db.CreateConnection();
+            await using var tx = await conn.BeginTransactionAsync();
+
             try
             {
-                await using var conn = _db.CreateConnection();
+                const string sqlInsertCash = @"INSERT INTO tbCashRegister (user_id) 
+                VALUES (@UserId)
+                RETURNING id";
 
-                const string sql = @"INSERT INTO tbCashRegister (opening_balance, user_id, date_time) VALUES (@OpeningBalance, @UserId, @DateTime)";
+                var cashId = await conn.ExecuteScalarAsync<Guid>
+                (
+                    sqlInsertCash,
+                    new { cashRegister.UserId },
+                    tx
+                );                
+
+                const string sqlInsertCashDetail = @"INSERT INTO tbCashRegisterDetails (cash_register_id, cash_name, amount, description, date_time) 
+                VALUES (@CashId, @CashName::cash_name_enum, @Amount, @Description, NOW())";
 
                 var parameters = new
                 {
-                    cashRegister.OpeningBalance,
-                    cashRegister.UserId,
-                    DateTime = DateTime.UtcNow
+                    CashId = cashId,
+                    CashName = "opened",
+                    cashRegister.Amount,
+                    Description = "Caixa Aberto"
                 };
 
-                var result = await conn.ExecuteAsync(sql, parameters);
+                var result = await conn.ExecuteAsync(sqlInsertCashDetail, parameters, tx);
 
                 if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
 
+                await tx.CommitAsync();
                 return ResponseDTO.Success(MessagesConstant.CashOpened);
             }
             catch (PostgresException pgEx) when (pgEx.SqlState == "23505")
             {
+                await tx.RollbackAsync();
                 return ResponseDTO.Failure(MessagesConstant.CashOpenedError);
             }
             catch (Exception ex)
             {
+                await tx.RollbackAsync();
                 _logger.LogError(ex, " - Failed to open cash register.");
                 return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
@@ -78,28 +95,45 @@ namespace unipos_basic_backend.src.Repositories
 
         public async Task<ResponseDTO> CloseRegisterAsync(CashRegisterCloseDTO cashRegister)
         {
+            await using var conn = _db.CreateConnection();
+            await using var tx = await conn.BeginTransactionAsync();
+
             try
             {
-                await using var conn = _db.CreateConnection();
-
                 const string sqlExist = @"SELECT 1 FROM tbCashRegister WHERE id = @Id";
-                var exists = await conn.QueryFirstOrDefaultAsync<int>(sqlExist, new { cashRegister.Id });
 
-                if (exists != 1) return ResponseDTO.Failure(MessagesConstant.NotFound);
+                const string sqlInsertCashDetail = @"INSERT INTO tbCashRegisterDetails (cash_register_id, cash_name, amount, description, date_time) 
+                VALUES (@CashRegisterId, @CashName::cash_name_enum, @Amount, @Description, NOW())";
 
-                var sql = @"UPDATE tbCashRegister SET status = FALSE, closing_balance = @ClosingBalance, closed_at = NOW(), date_time = NOW() WHERE id = @Id";
+                var sqlUpdateCash = @"UPDATE tbCashRegister SET is_opened = FALSE WHERE id = @Id";
+
+                var exists = await conn.QueryFirstOrDefaultAsync<int>(sqlExist, new { Id = cashRegister.CashRegisterId });                
 
                 var parameters = new
                 {
-                    cashRegister.Id,
-                    cashRegister.ClosingBalance
+                    cashRegister.CashRegisterId,
+                    CashName = "closed",
+                    cashRegister.Amount,
+                    Description = "Caixa Fechado"
                 };
 
-                var result = await conn.ExecuteAsync(sql, parameters);
+                await conn.ExecuteAsync(sqlInsertCashDetail, parameters, tx);
+
+                var result = await conn.ExecuteAsync(
+                    sqlUpdateCash,
+                    new { Id = cashRegister.CashRegisterId },
+                     tx
+                );
 
                 if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
 
+                await tx.CommitAsync();
                 return ResponseDTO.Success(MessagesConstant.CashClosed);
+            }
+            catch (PostgresException pgEx) when (pgEx.SqlState == "23505")
+            {
+                await tx.RollbackAsync();
+                return ResponseDTO.Failure("Erro ao fechar caixa");
             }
             catch (Exception ex)
             {
@@ -183,9 +217,9 @@ namespace unipos_basic_backend.src.Repositories
                     crd.cash_name AS CashName,
                     crd.amount AS Amount,
                     crd.description AS Description,
-                    crd.status AS Status,
+                    crd.is_confirmed AS Status,
                     crd.created_at AS CreatedAt,
-                    crd.updated_at AS UpdatedAt
+                    crd.date_time AS UpdatedAt
                 FROM tbCashRegister cr
                 JOIN tbCashRegisterDetails crd ON cr.id = crd.cash_register_id
                 WHERE cr.id = @Id
@@ -201,15 +235,14 @@ namespace unipos_basic_backend.src.Repositories
             {
                 await using var conn = _db.CreateConnection();
 
-                const string sql = @"INSERT INTO tbCashRegisterDetails (cash_register_id, cash_name, amount, description, date_time) VALUES (@CashRegisterId, @CashName, @Amount, @Description, @DateTime)";
+                const string sql = @"INSERT INTO tbCashRegisterDetails (cash_register_id, cash_name, amount, description, date_time) VALUES (@CashRegisterId, @CashName::cash_name_enum, @Amount, @Description, NOW())";
 
                 var parameters = new
                 {
                     cashRegister.CashRegisterId,
                     cashRegister.CashName,
                     cashRegister.Amount,
-                    cashRegister.Description,
-                    DateTime = DateTime.UtcNow
+                    cashRegister.Description
                 };
 
                 var result = await conn.ExecuteAsync(sql, parameters);
@@ -240,7 +273,7 @@ namespace unipos_basic_backend.src.Repositories
 
                 if (exists != 1) return ResponseDTO.Failure(MessagesConstant.NotFound);
 
-                var sql = @"UPDATE tbCashRegisterDetails SET status = @Status, updated_at = NOW(), date_time = NOW() WHERE id = @Id";
+                var sql = @"UPDATE tbCashRegisterDetails SET is_confirmed = @Status, date_time = NOW() WHERE id = @Id";
 
                 var parameters = new
                 {
