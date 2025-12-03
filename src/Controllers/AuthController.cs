@@ -139,6 +139,7 @@ namespace unipos_basic_backend.src.Controllers
                 {
                     ServerOk = true,
                     Is_LoggedIn = true,
+                    Id = tokenRecord.UserId,
                     Username = user.Username,
                     Roles = user.Roles
                 });

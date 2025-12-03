@@ -12,41 +12,82 @@ namespace unipos_basic_backend.src.Repositories
         private readonly PostgresDb _db = db;
         private readonly ILogger<OrdersRepository> _logger = logger;
 
+        public async Task<OrdersCheckPosDTO?> CheckPos(Guid userId)
+        {
+            const string sql = @"
+                SELECT
+                    cr.id AS CashRegisterId,
+                    cr.is_opened AS Status
+                FROM tbCashRegister cr
+                INNER JOIN tbCashRegisterDetails crd ON crd.cash_register_id = cr.id
+                WHERE (crd.cash_name = 'opened' OR crd.cash_name = 'closed') AND cr.user_id = @UserId
+                ORDER BY crd.created_at DESC
+                LIMIT 1;";
+
+            await using var conn = _db.CreateConnection();
+            return await conn.QueryFirstOrDefaultAsync<OrdersCheckPosDTO?>(sql, new { UserId = userId });
+        }
+
         public async Task<IEnumerable<OrdersListDTO>> GetAllAsync()
         {
             const string sql = @"
                 SELECT
-                    c.id AS Id,
-                    c.fullName AS FullName,
-                    c.phone_number AS PhoneNumber,
-                    
-                    STRING_AGG(DISTINCT p.item_name, '  ••  ') 
-                        AS Description,
+                    s.id AS Id,
+                    MAX(c.fullName) AS CustomerName,
+                    MAX(c.phone_number) AS CustomerPhone,
 
-                    COALESCE(SUM(o.quantity) FILTER (WHERE o.status IN ('pending', 'paid')), 0)     AS TotalQty,
+                    COALESCE(produtos.descricao, 'Sem itens') AS Description,
 
-                    COALESCE(SUM(o.total_to_pay) FILTER (WHERE o.status IN ('pending', 'paid')), 0) AS TotalPay,
-                    
-                    c.total_paid AS TotalPaid,
-                    c.total_change AS TotalChange,
-                    o.status,
+                    COALESCE(items.total_qty, 0)        AS TotalQty,
+                    COALESCE(items.total_to_pay, 0.00)    AS TotalPay,
+                    COALESCE(payments.total_paid, 0.00)   AS TotalPaid,
+                    GREATEST(COALESCE(payments.total_paid, 0) - COALESCE(items.total_to_pay, 0), 0) AS TotalChange,
 
-                    MAX(o.created_at) FILTER (WHERE o.status IN ('pending', 'paid'))               AS CreatedAt
+                    MAX(o.status) AS Status,
+                    MAX(u.username) AS Operator,
+                    MAX(o.created_at) AS CreatedAt
 
-                FROM tbCustomers c
-                LEFT JOIN tbOrders o 
-                    ON o.customer_id = c.id 
-                LEFT JOIN tbProducts p 
-                    ON p.id = o.product_id
+                FROM tbSales s
+                INNER JOIN tbCashRegister cr ON cr.id = s.cash_register_id
+                INNER JOIN tbUsers u ON u.id = cr.user_id
+                INNER JOIN tbCustomers c ON c.sales_id = s.id
+
+                CROSS JOIN LATERAL (
+                    SELECT
+                        SUM(quantity)     AS total_qty,
+                        SUM(total_to_pay) AS total_to_pay
+                    FROM tbOrders
+                    WHERE sales_id = s.id AND status IN ('pending', 'paid')
+                ) items
+
+                LEFT JOIN LATERAL (
+                    SELECT SUM(total_paid) AS total_paid
+                    FROM tbPaymentSales
+                    WHERE sales_id = s.id AND is_paid = TRUE
+                ) payments ON TRUE
+
+                LEFT JOIN LATERAL (
+                    SELECT STRING_AGG(qtd_nome, ' • ' ORDER BY qtd_nome) AS descricao
+                    FROM (
+                        SELECT DISTINCT
+                            o.quantity || ' × ' || p.item_name AS qtd_nome
+                        FROM tbOrders o
+                        JOIN tbProducts p ON p.id = o.product_id
+                        WHERE o.sales_id = s.id
+                        AND o.status IN ('pending', 'paid')
+                    ) sub
+                ) produtos ON TRUE
+
+                LEFT JOIN tbOrders o ON o.sales_id = s.id AND o.status IN ('pending', 'paid')
 
                 GROUP BY 
-                    c.id, 
-                    c.fullName, 
-                    c.phone_number,
-                    o.status
+                    s.id,
+                    items.total_qty,
+                    items.total_to_pay,
+                    payments.total_paid,
+                    produtos.descricao
 
-                ORDER BY 
-                    CreatedAt DESC NULLS LAST";
+                ORDER BY CreatedAt DESC NULLS LAST;";
 
             await using var conn = _db.CreateConnection();
             return (await conn.QueryAsync<OrdersListDTO>(sql)).AsList();
@@ -59,23 +100,31 @@ namespace unipos_basic_backend.src.Repositories
 
             try
             {
-                // Insert customer and retrieve generated ID
-                const string sqlInsertCustomer = """
-                    INSERT INTO tbCustomers (fullName, phone_number)
-                    VALUES (@CustomerFullName, @CustomerPhoneNumber)
-                    RETURNING id;
-                    """;
+                const string sqlInsertSale = @"INSERT INTO tbSales (cash_register_id) VALUES(@CashRegisterId) RETURNING id;";
+                
+                const string sqlInsertCustomer = @"INSERT INTO tbCustomers (sales_id, fullName, phone_number) VALUES (@SaleId, @FullName, @PhoneNumber);";
 
-                var customerId = await conn.ExecuteScalarAsync<Guid>( 
+                const string sqlInsertOrder = @"INSERT INTO tbOrders (sales_id, product_id, quantity, unit_price) VALUES (@SaleId, @ProductId, @Quantity, @UnitPrice);";
+
+                var saleId = await conn.ExecuteScalarAsync<Guid>(
+                    sqlInsertSale,
+                    new { order.CashRegisterId },
+                    tx
+                );
+                
+                await conn.ExecuteAsync(
                     sqlInsertCustomer,
-                    new { order.CustomerFullName, order.CustomerPhoneNumber },
+                    new 
+                    { 
+                        SaleId = saleId,
+                        FullName = order.CustomerName,
+                        PhoneNumber = order.CustomerPhone
+                    },
                     tx
                 );
 
                 // Reusable queries
-                const string sqlGetPrice = """
-                    SELECT price FROM tbProducts WHERE id = @ProductId LIMIT 1;
-                    """;
+                const string sqlGetUnitPrice = @"SELECT price FROM tbProducts WHERE id = @ProductId LIMIT 1;";
 
                 const string sqlGetIngredients = """
                     SELECT
@@ -97,10 +146,7 @@ namespace unipos_basic_backend.src.Repositories
                     WHERE id = @IngredientId;
                     """;
 
-                const string sqlInsertOrderItem = """
-                    INSERT INTO tbOrders (customer_id, product_id, quantity, unit_price)
-                    VALUES (@CustomerId, @ProductId, @Quantity, @Price);
-                    """;
+                
 
                 if (order.OrderItems?.Any() != true)
                     return ResponseDTO.Failure(MessagesConstant.OperationFailed);
@@ -109,7 +155,7 @@ namespace unipos_basic_backend.src.Repositories
                 {
                     // 1. Get unit price
                     var unitPrice = await conn.ExecuteScalarAsync<decimal>(
-                        sqlGetPrice, new { item.ProductId }, tx);
+                        sqlGetUnitPrice, new { item.ProductId }, tx);
 
                     if (unitPrice <= 0)
                         return ResponseDTO.Failure(MessagesConstant.NotFound);
@@ -135,17 +181,17 @@ namespace unipos_basic_backend.src.Repositories
                             tx);
                     }
 
-                    // 4. Persist order item
                     await conn.ExecuteAsync(
-                        sqlInsertOrderItem,
+                        sqlInsertOrder,
                         new
                         {
-                            CustomerId = customerId,
-                            ProductId = item.ProductId,
-                            Quantity = item.Quantity,
-                            Price = unitPrice
+                            SaleId = saleId,
+                            item.ProductId,
+                            item.Quantity,
+                            UnitPrice = unitPrice
                         },
-                        tx);
+                        tx
+                    );
                 }
 
                 await tx.CommitAsync();
@@ -154,45 +200,47 @@ namespace unipos_basic_backend.src.Repositories
             catch (Exception ex)
             {
                 await tx.RollbackAsync();
-                _logger.LogError(ex, "Failed to create order for customer {FullName} ({Phone})", 
-                    order.CustomerFullName, order.CustomerPhoneNumber);
+                _logger.LogError(ex, "Failed to create order for customer)");
                 return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
         }
 
-        public async Task<ResponseDTO> CreatePayNow(OrdersCreatePayNowDTO orderPayNow)
+        public async Task<ResponseDTO> CreatePayNow(OrdersCreatePayNowDTO order)
         {
             await using var conn = _db.CreateConnection();
             await using var tx = await conn.BeginTransactionAsync();
 
             try
             {
-                // Insert customer and retrieve generated ID
-                const string sqlInsertCustomer = """
-                    INSERT INTO tbCustomers (total_paid, total_change)
-                    VALUES (@TotalPaid, @TotalChange)
-                    RETURNING id;
-                    """;
+                const string sqlInsertSale = @"INSERT INTO tbSales (cash_register_id) VALUES(@CashRegisterId) RETURNING id;";
+                
+                const string sqlInsertCustomer = @"INSERT INTO tbCustomers (sales_id) VALUES (@SaleId);";
 
-                var customerId = await conn.ExecuteScalarAsync<Guid>( 
-                    sqlInsertCustomer,
-                    new { orderPayNow.TotalPaid, orderPayNow.TotalChange },
+                const string sqlInsertOrderItem = @"INSERT INTO tbOrders (sales_id, product_id, quantity, unit_price, status) 
+                VALUES (@SaleId, @ProductId, @Quantity, @UnitPrice, @Status::order_status);";
+
+                const string sqlInsertPymt = @"INSERT INTO tbPaymentSales (sales_id, method, total_paid)
+                VALUES (@SaleId, @Method::pymt_method, @TotalPaid)";
+
+                var saleId = await conn.ExecuteScalarAsync<Guid>(
+                    sqlInsertSale,
+                    new { order.CashRegisterId },
                     tx
                 );
 
-                const string sqlExistCustomer = @"SELECT 1 FROM tbCustomers WHERE id = @Id";
-                var checkIfExist = await conn.QueryFirstOrDefaultAsync<int>(sqlExistCustomer, new { Id = customerId });
-                if (checkIfExist != 1) return ResponseDTO.Failure(MessagesConstant.NotFound);
+                await conn.ExecuteAsync(
+                    sqlInsertCustomer,
+                    new { SaleId = saleId },
+                    tx
+                );
 
-                const string sqlInsertPymt = @"INSERT INTO tbPaymentOrders (customer_id, method, amount) VALUES (@CustomerId, @Method::pymt_method, @Amount)";
-
-                if (orderPayNow.Method!.Cash is not null && orderPayNow.Method!.Cash != 0)
+                if (order.Method!.Cash is not null && order.Method!.Cash > 0)
                 {
                     var parameters = new
                     {
-                        CustomerId = customerId,
+                        SaleId = saleId,
                         Method = "cash",
-                        Amount = orderPayNow.Method.Cash
+                        TotalPaid = order.Method.Cash               
                     };
 
                     var result = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
@@ -201,13 +249,13 @@ namespace unipos_basic_backend.src.Repositories
                 }
 
 
-                if (orderPayNow.Method!.EMola is not null && orderPayNow.Method!.EMola != 0)
+                if (order.Method!.EMola is not null && order.Method!.EMola > 0)
                 {
                     var parameters = new
                     {
-                        CustomerId = customerId,
+                        SaleId = saleId,
                         Method = "eMola",
-                        Amount = orderPayNow.Method.EMola
+                        TotalPaid = order.Method.EMola
                     };
 
                     var result = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
@@ -216,13 +264,13 @@ namespace unipos_basic_backend.src.Repositories
                 }
 
 
-                if (orderPayNow.Method!.MPesa is not null && orderPayNow.Method!.MPesa != 0)
+                if (order.Method!.MPesa is not null && order.Method!.MPesa > 0)
                 {
                     var parameters = new
                     {
-                        CustomerId = customerId,
+                        SaleId = saleId,
                         Method = "mPesa",
-                        Amount = orderPayNow.Method.MPesa
+                        TotalPaid = order.Method.MPesa
                     };
 
                     var result = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
@@ -255,15 +303,10 @@ namespace unipos_basic_backend.src.Repositories
                     WHERE id = @IngredientId;
                     """;
 
-                const string sqlInsertOrderItem = @"
-                    INSERT INTO tbOrders (customer_id, product_id, quantity, unit_price, status)
-                    VALUES (@CustomerId, @ProductId, @Quantity, @Price, @Status::order_status);
-                    ";
-
-                if (orderPayNow.OrderItems?.Any() != true)
+                if (order.OrderItems?.Any() != true)
                     return ResponseDTO.Failure(MessagesConstant.OperationFailed);
 
-                foreach (var item in orderPayNow.OrderItems)
+                foreach (var item in order.OrderItems)
                 {
                     // 1. Get unit price
                     var unitPrice = await conn.ExecuteScalarAsync<decimal>(
@@ -293,15 +336,14 @@ namespace unipos_basic_backend.src.Repositories
                             tx);
                     }
 
-                    // 4. Persist order item
                     await conn.ExecuteAsync(
                         sqlInsertOrderItem,
                         new
                         {
-                            CustomerId = customerId,
+                            SaleId = saleId,
                             item.ProductId,
                             item.Quantity,
-                            Price = unitPrice,
+                            UnitPrice = unitPrice,
                             Status = "paid"
                         },
                         tx
@@ -331,7 +373,7 @@ namespace unipos_basic_backend.src.Repositories
             {
                 await using var conn = _db.CreateConnection();
 
-                const string sql = @"SELECT COUNT(*) AS total FROM tbCustomers";
+                const string sql = @"SELECT COUNT(*) AS Total FROM tbSales";
 
                 var result = await conn.QueryFirstOrDefaultAsync<int>(sql);
 
@@ -344,7 +386,7 @@ namespace unipos_basic_backend.src.Repositories
             }
         }
 
-        public async Task<ResponseDTO> UpdateAsync(OrdersUpdatePayNowDTO order)
+        public async Task<ResponseDTO> UpdatePayNow(OrdersUpdatePayNowDTO order)
         {
             await using var conn = _db.CreateConnection();
 
@@ -352,28 +394,22 @@ namespace unipos_basic_backend.src.Repositories
 
             try
             {
-                const string sqlExist = @"SELECT 1 FROM tbCustomers WHERE id = @Id";
-                var exists = await conn.QueryFirstOrDefaultAsync<int>(sqlExist, new { order.Id });
+                const string sqlExist = @"SELECT 1 FROM tbSales WHERE id = @Id";
 
-                if (exists != 1) return ResponseDTO.Failure(MessagesConstant.NotFound);
-
-                const string sqlUpdateCustomer = @"UPDATE tbCustomers SET total_paid = @TotalPaid, total_change = @TotalChange WHERE id = @CustomerId";
-                
-                var result = await conn.ExecuteAsync(
-                    sqlUpdateCustomer,
-                    new {  order.TotalPaid, order.TotalChange, CustomerId = order.Id },
-                    tx
-                );
-
-                if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
-
-                const string sqlGetOrdersId = @"SELECT id FROM tbOrders WHERE customer_id = @CustomerId";
+                const string sqlGetOrdersId = @"SELECT id FROM tbOrders WHERE sales_id = @SaleId";
 
                 const string sqlUpdateOrders = @"UPDATE tbOrders SET status = @Status::order_status WHERE id = @OrderId";
 
-                var ordersIDs = await conn.QueryAsync<Guid>(sqlGetOrdersId, new { CustomerId = order.Id });
+                const string sqlInsertPymt = @"INSERT INTO tbPaymentSales (sales_id, method, total_paid)
+                VALUES (@SaleId, @Method::pymt_method, @TotalPaid)";
 
-                foreach (var id in ordersIDs)
+                var exists = await conn.QueryFirstOrDefaultAsync<int>(sqlExist, new { Id = order.SaleId });
+
+                if (exists != 1) return ResponseDTO.Failure(MessagesConstant.NotFound);
+                
+                var ordersID = await conn.QueryAsync<Guid>(sqlGetOrdersId, new { order.SaleId });
+
+                foreach (var id in ordersID)
                 {
                     await conn.ExecuteAsync(
                         sqlUpdateOrders,
@@ -382,50 +418,48 @@ namespace unipos_basic_backend.src.Repositories
                     );
                 }
 
-                const string sqlInsertPymt = @"INSERT INTO tbPaymentOrders (customer_id, method, amount) VALUES (@CustomerId, @Method::pymt_method, @Amount)";
-
-                if (order.Method!.Cash is not null && order.Method!.Cash != 0)
+                if (order.Method!.Cash is not null && order.Method!.Cash > 0)
                 {
                     var parameters = new
                     {
-                        CustomerId = order.Id,
+                        order.SaleId,
                         Method = "cash",
-                        Amount = order.Method.Cash
+                        TotalPaid = order.Method.Cash
                     };
 
-                    var results = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
+                    var result = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
 
-                    if (results == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+                    if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
                 }
 
 
-                if (order.Method!.EMola is not null && order.Method!.EMola != 0)
+                if (order.Method!.EMola is not null && order.Method!.EMola > 0)
                 {
                     var parameters = new
                     {
-                        CustomerId = order.Id,
+                        order.SaleId,
                         Method = "eMola",
-                        Amount = order.Method.EMola
+                        TotalPaid = order.Method.EMola
                     };
 
-                    var results = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
+                    var result = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
 
-                    if (results == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+                    if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
                 }
 
 
-                if (order.Method!.MPesa is not null && order.Method!.MPesa != 0)
+                if (order.Method!.MPesa is not null && order.Method!.MPesa > 0)
                 {
                     var parameters = new
                     {
-                        CustomerId = order.Id,
+                        order.SaleId,
                         Method = "mPesa",
-                        Amount = order.Method.MPesa
+                        TotalPaid = order.Method.MPesa
                     };
 
-                    var results = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
+                    var result = await conn.ExecuteAsync(sqlInsertPymt, parameters, tx);
 
-                    if (results == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
+                    if (result == 0) return ResponseDTO.Failure(MessagesConstant.OperationFailed);
                 }                
                 
                 await tx.CommitAsync();

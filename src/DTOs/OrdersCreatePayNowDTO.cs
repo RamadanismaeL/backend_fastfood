@@ -2,8 +2,7 @@ namespace unipos_basic_backend.src.DTOs
 {
     public sealed class OrdersCreatePayNowDTO
     {
-        public decimal TotalPaid { get; set; }
-        public decimal TotalChange { get; set; }
+        public Guid CashRegisterId { get; set; }
         public PymtMethodDTO? Method { get; set; }
         public List<OrderItemsDTO>? OrderItems { get; set; }
     }

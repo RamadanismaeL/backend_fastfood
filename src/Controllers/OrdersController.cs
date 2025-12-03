@@ -16,6 +16,13 @@ namespace unipos_basic_backend.src.Controllers
         private readonly IOrdersRepository _ordersRepository = ordersRepository;
         private readonly IHubContext<NotificationHub> _hubContext = hubContext;
 
+        [HttpGet("v1/check-pos/{userId:guid}")]
+        public async Task<ActionResult<OrdersCheckPosDTO>> CheckPos([FromRoute] Guid userId)
+        {
+            var result = await _ordersRepository.CheckPos(userId);
+            return Ok(result);
+        }
+
         [HttpGet("v1/get-all")]
         public async Task<ActionResult<IEnumerable<OrdersListDTO>>> GetAllAsync()
         {
@@ -59,11 +66,11 @@ namespace unipos_basic_backend.src.Controllers
         }
 
         [HttpPut("v1/update")]
-        public async Task<IActionResult> UpdateAsync(OrdersUpdatePayNowDTO order)
+        public async Task<IActionResult> UpdatePayNow(OrdersUpdatePayNowDTO order)
         {
             if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
 
-            var result = await _ordersRepository.UpdateAsync(order);
+            var result = await _ordersRepository.UpdatePayNow(order);
 
             if (!result.IsSuccess)
                 return result.Message == MessagesConstant.NotFound ? NotFound(result) : BadRequest(result);

@@ -4,10 +4,11 @@ namespace unipos_basic_backend.src.Interfaces
 {
     public interface IOrdersRepository
     {
+        Task<OrdersCheckPosDTO?> CheckPos(Guid userId);
         Task<IEnumerable<OrdersListDTO>> GetAllAsync();
         Task<ResponseDTO> CreateAsync(OrdersCreateDTO order);
-        Task<ResponseDTO> CreatePayNow(OrdersCreatePayNowDTO orderPayNow);
+        Task<ResponseDTO> CreatePayNow(OrdersCreatePayNowDTO order);
         Task<string> GetReceiptNumber();
-        Task<ResponseDTO> UpdateAsync(OrdersUpdatePayNowDTO order);
+        Task<ResponseDTO> UpdatePayNow(OrdersUpdatePayNowDTO order);
     }
 }
