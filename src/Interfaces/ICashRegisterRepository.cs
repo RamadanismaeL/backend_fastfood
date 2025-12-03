@@ -13,5 +13,7 @@ namespace unipos_basic_backend.src.Interfaces
         Task<IEnumerable<CashRegisterDetailListDTO>> GetAllDetails(Guid cashRegisterId);
         Task<ResponseDTO> CreateCashDetails(CashRegisterDetailCreateDTO cashRegister);
         Task<ResponseDTO> UpdateCashDetails(CashRegisterDetailUpdateDTO cashRegister);
+        Task<CashRegisterCardsDTO> GetCardAsync();
+        Task<CashRegisterCardsDTO> GetCardAsync(Guid id);
     }
 }

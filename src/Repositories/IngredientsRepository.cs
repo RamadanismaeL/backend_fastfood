@@ -159,8 +159,9 @@ namespace unipos_basic_backend.src.Repositories
                 FROM tbIngredients";
 
             await using var conn = _db.CreateConnection();
-            var result = await conn.QueryAsync<IngredientsCardsDTO>(sql);
-            return result.FirstOrDefault() ?? new IngredientsCardsDTO();
+            
+            var result = await conn.QueryFirstOrDefaultAsync<IngredientsCardsDTO>(sql);
+            return result ?? new IngredientsCardsDTO();
         }    
 
         private static string GetExpirationStatus(DateTime? expirationAt)

@@ -113,5 +113,19 @@ namespace unipos_basic_backend.src.Controllers
             await _hubContext.Clients.All.SendAsync("keyNotification", "updated");
             return Ok(result);
         }
+
+        [HttpGet("v1/get-cards")]
+        public async Task<ActionResult<CashRegisterCardsDTO>> GetCardAsync()
+        {
+            var result = await _cashRegisterRep.GetCardAsync();
+            return Ok(result);
+        }
+
+        [HttpGet("v1/get-cards/{id:guid}")]
+        public async Task<ActionResult<CashRegisterCardsDTO>> GetCardAsync([FromRoute] Guid id)
+        {
+            var result = await _cashRegisterRep.GetCardAsync(id);
+            return Ok(result);
+        }
     }
 }

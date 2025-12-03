@@ -218,7 +218,6 @@ namespace unipos_basic_backend.src.Repositories
                     crd.amount AS Amount,
                     crd.description AS Description,
                     crd.is_confirmed AS Status,
-                    crd.created_at AS CreatedAt,
                     crd.date_time AS UpdatedAt
                 FROM tbCashRegister cr
                 JOIN tbCashRegisterDetails crd ON cr.id = crd.cash_register_id
@@ -292,6 +291,117 @@ namespace unipos_basic_backend.src.Repositories
                 _logger.LogError(ex, " - Failed to update cash register detail.");
                 return ResponseDTO.Failure(MessagesConstant.ServerError);
             }
+        }
+
+        public async Task<CashRegisterCardsDTO> GetCardAsync()
+        {
+            const string sql = @"
+                SELECT
+                    init.InitialBalance,
+                    rev.TotalRevenue,
+                    exp.TotalExpense,
+                    (rev.TotalRevenue - exp.TotalExpense) AS TotalProfit
+                FROM
+                    (
+                        SELECT 
+                            COALESCE(SUM(crd.amount), 0) AS InitialBalance
+                        FROM tbCashRegisterDetails crd
+                        INNER JOIN tbCashRegister cr 
+                            ON cr.id = crd.cash_register_id
+                        WHERE crd.date_time::date = CURRENT_DATE
+                        AND crd.cash_name IN ('opened', 'cash in')
+                        AND crd.is_confirmed = TRUE
+                        AND cr.is_opened = TRUE
+                    ) AS init
+
+                CROSS JOIN
+                    (
+                        SELECT 
+                            COALESCE(SUM(o.total_to_pay), 0) AS TotalRevenue
+                        FROM tbOrders o
+                        INNER JOIN tbSales s
+                            ON s.id = o.sales_id
+                        INNER JOIN tbCashRegister cr
+                            ON cr.id = s.cash_register_id
+                        WHERE o.created_at::date = CURRENT_DATE
+                        AND o.status = 'paid'
+                        AND cr.is_opened = TRUE
+                    ) AS rev
+
+                CROSS JOIN
+                    (
+                        SELECT 
+                            COALESCE(SUM(amount), 0) AS TotalExpense
+                        FROM tbCashRegisterDetails
+                        INNER JOIN tbCashRegister cr
+                            ON cr.id = cash_register_id
+                        WHERE date_time::date = CURRENT_DATE
+                        AND cash_name = 'cash out'
+                        AND is_confirmed = TRUE
+                        AND cr.is_opened = TRUE
+                    ) AS exp;";
+
+            await using var conn = _db.CreateConnection();
+            
+            var result = await conn.QueryFirstOrDefaultAsync<CashRegisterCardsDTO>(sql);
+            return result ?? new CashRegisterCardsDTO();
+        }
+
+        public async Task<CashRegisterCardsDTO> GetCardAsync(Guid id)
+        {
+            const string sql = @"
+                SELECT
+                    init.InitialBalance,
+                    rev.TotalRevenue,
+                    exp.TotalExpense,
+                    (rev.TotalRevenue - exp.TotalExpense) AS TotalProfit
+                FROM
+                    (
+                        SELECT 
+                            COALESCE(SUM(crd.amount), 0) AS InitialBalance
+                        FROM tbCashRegisterDetails crd
+                        INNER JOIN tbCashRegister cr 
+                            ON cr.id = crd.cash_register_id
+                        WHERE crd.date_time::date = CURRENT_DATE
+                        AND crd.cash_name IN ('opened', 'cash in')
+                        AND crd.is_confirmed = TRUE
+                        AND cr.is_opened = TRUE
+                        AND cr.id = @Id
+                    ) AS init
+
+                CROSS JOIN
+                    (
+                        SELECT 
+                            COALESCE(SUM(o.total_to_pay), 0) AS TotalRevenue
+                        FROM tbOrders o
+                        INNER JOIN tbSales s
+                            ON s.id = o.sales_id
+                        INNER JOIN tbCashRegister cr
+                            ON cr.id = s.cash_register_id
+                        WHERE o.created_at::date = CURRENT_DATE
+                        AND o.status = 'paid'
+                        AND cr.is_opened = TRUE
+                        AND cr.id = @Id
+                    ) AS rev
+
+                CROSS JOIN
+                    (
+                        SELECT 
+                            COALESCE(SUM(amount), 0) AS TotalExpense
+                        FROM tbCashRegisterDetails
+                        INNER JOIN tbCashRegister cr
+                            ON cr.id = cash_register_id
+                        WHERE date_time::date = CURRENT_DATE
+                        AND cash_name = 'cash out'
+                        AND is_confirmed = TRUE
+                        AND cr.is_opened = TRUE
+                        AND cr.id = @Id
+                    ) AS exp;";
+
+            await using var conn = _db.CreateConnection();
+            
+            var result = await conn.QueryFirstOrDefaultAsync<CashRegisterCardsDTO>(sql, new { Id = id});
+            return result ?? new CashRegisterCardsDTO();
         }
     }
 }

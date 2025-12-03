@@ -28,6 +28,81 @@ namespace unipos_basic_backend.src.Repositories
             return await conn.QueryFirstOrDefaultAsync<OrdersCheckPosDTO?>(sql, new { UserId = userId });
         }
 
+        public async Task<IEnumerable<OrdersListDTO>> GetAllAsync(Guid registerId)
+        {
+            const string sql = @"
+                SELECT
+                    s.id AS Id,
+                    MAX(c.fullName) AS CustomerName,
+                    MAX(c.phone_number) AS CustomerPhone,
+
+                    COALESCE(produtos.descricao, 'Sem itens') AS Description,
+
+                    COALESCE(items.total_qty, 0)           AS TotalQty,
+                    COALESCE(items.total_to_pay, 0.00)     AS TotalPay,
+                    COALESCE(payments.total_paid, 0.00)    AS TotalPaid,
+                    GREATEST(COALESCE(payments.total_paid, 0) - COALESCE(items.total_to_pay, 0), 0) AS TotalChange,
+
+                    MAX(o.status) AS Status,
+                    MAX(o.created_at) AS CreatedAt
+
+                FROM tbSales s
+                INNER JOIN tbCashRegister cr ON cr.id = s.cash_register_id
+                INNER JOIN tbCashRegisterDetails crd ON crd.cash_register_id = cr.id
+                INNER JOIN tbCustomers c ON c.sales_id = s.id
+
+                -- Totais dos itens
+                CROSS JOIN LATERAL (
+                    SELECT
+                        SUM(o.quantity)     AS total_qty,
+                        SUM(o.total_to_pay) AS total_to_pay
+                    FROM tbOrders o
+                    WHERE o.sales_id = s.id 
+                        AND o.status IN ('pending', 'paid')
+                        AND o.created_at::DATE = CURRENT_DATE
+                ) items
+
+                -- Total pago
+                LEFT JOIN LATERAL (
+                    SELECT SUM(total_paid) AS total_paid
+                    FROM tbPaymentSales ps
+                    WHERE ps.sales_id = s.id 
+                        AND ps.is_paid = TRUE
+                ) payments ON TRUE
+
+                -- Descrição dos itens
+                LEFT JOIN LATERAL (
+                    SELECT STRING_AGG(qtd_nome, ' • ' ORDER BY qtd_nome) AS descricao
+                    FROM (
+                        SELECT DISTINCT
+                            o.quantity || ' × ' || p.item_name AS qtd_nome
+                        FROM tbOrders o
+                        JOIN tbProducts p ON p.id = o.product_id
+                        WHERE o.sales_id = s.id
+                        AND o.status IN ('pending', 'paid')
+                    ) sub
+                ) produtos ON TRUE
+
+                LEFT JOIN tbOrders o 
+                    ON o.sales_id = s.id 
+                AND o.status IN ('pending', 'paid')
+
+                WHERE cr.is_opened = TRUE
+                AND cr.id = @CashRegisterId
+                AND crd.date_time::DATE = CURRENT_DATE
+                GROUP BY 
+                    s.id,
+                    items.total_qty,
+                    items.total_to_pay,
+                    payments.total_paid,
+                    produtos.descricao
+
+                ORDER BY CreatedAt DESC NULLS LAST;";
+
+            await using var conn = _db.CreateConnection();
+            return (await conn.QueryAsync<OrdersListDTO>(sql, new { CashRegisterId = registerId })).AsList();
+        }
+
         public async Task<IEnumerable<OrdersListDTO>> GetAllAsync()
         {
             const string sql = @"

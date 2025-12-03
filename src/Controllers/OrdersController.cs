@@ -23,6 +23,13 @@ namespace unipos_basic_backend.src.Controllers
             return Ok(result);
         }
 
+        [HttpGet("v1/get-all/{registerId:guid}")]
+        public async Task<ActionResult<IEnumerable<OrdersListDTO>>> GetAllAsync([FromRoute] Guid registerId)
+        {
+            var result = await _ordersRepository.GetAllAsync(registerId);
+            return Ok(result);
+        }
+
         [HttpGet("v1/get-all")]
         public async Task<ActionResult<IEnumerable<OrdersListDTO>>> GetAllAsync()
         {
