@@ -16,6 +16,7 @@ namespace unipos_basic_backend.src.Controllers
         private readonly IOrdersRepository _ordersRepository = ordersRepository;
         private readonly IHubContext<NotificationHub> _hubContext = hubContext;
 
+        [AllowAnonymous]
         [HttpGet("v1/check-pos/{userId:guid}")]
         public async Task<ActionResult<OrdersCheckPosDTO>> CheckPos([FromRoute] Guid userId)
         {

@@ -37,6 +37,7 @@ namespace unipos_basic_backend.src.Controllers
                 {
                     IsSuccess = true,
                     Message = "Signed in successfully.",
+                    Roles = user.Roles,
                     AccessToken = accessToken,
                     ExpiresAt = DateTime.UtcNow.AddMinutes(15)
                 });

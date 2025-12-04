@@ -54,12 +54,18 @@ foreach (var folder in folders)
     });
 }
 
+/*
 app.MapHub<NotificationHub>("/notificationHub", op =>
 {
     op.Transports = HttpTransportType.WebSockets;
 })
 .RequireCors("CorsPolicy")
-.RequireAuthorization();
+.RequireAuthorization()
+.AllowAnonymous();
+*/
+app.MapHub<NotificationHub>("/notificationHub")
+   .AllowAnonymous()
+   .RequireCors("CorsPolicy");
 
 app.MapControllers();
 
