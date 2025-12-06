@@ -770,5 +770,35 @@ namespace unipos_basic_backend.src.Repositories
 
             return [parameters];
         }
+
+        public async Task<IEnumerable<CarouselPymtMethodDTO>> GetPymtMethod(DateDTO date)
+        {
+            const string sql = @"
+                SELECT ARRAY
+                [
+                    COALESCE(SUM(o.total_to_pay) FILTER(WHERE ps.method = 'cash'), 0),
+                    COALESCE(SUM(o.total_to_pay) FILTER(WHERE ps.method = 'eMola'), 0),
+                    COALESCE(SUM(o.total_to_pay) FILTER(WHERE ps.method = 'mPesa'), 0)
+                ] AS Amounts
+                FROM tbOrders o
+                INNER JOIN tbPaymentSales ps
+                    ON ps.sales_id = o.sales_id
+                WHERE o.is_available = TRUE
+                    AND o.status = 'paid'
+                    AND ps.is_paid = TRUE
+                    AND ps.created_at::DATE = @Date::DATE";
+
+            await using var conn = _db.CreateConnection();
+            var result = await conn.QuerySingleOrDefaultAsync<CarouselPymtMethodDTO>(sql, new { date.Date });
+
+            if (result is null) return [];
+
+            var parameters = new CarouselPymtMethodDTO
+            {
+              Amounts = result.Amounts ?? []  
+            };
+
+            return [parameters];
+        }
     }
 }

@@ -93,5 +93,14 @@ namespace unipos_basic_backend.src.Controllers
             var result = await _reportsRep.GetAverageTicket(date);
             return Ok(result);
         }
+
+        [HttpPost("v1/get-pymt-method")]
+        public async Task<ActionResult<IEnumerable<CarouselPymtMethodDTO>>> GetPymtMethod([FromBody] DateDTO date)
+        {
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
+            
+            var result = await _reportsRep.GetPymtMethod(date);
+            return Ok(result);
+        }
     }
 }
