@@ -5,7 +5,13 @@ namespace unipos_basic_backend.src.Interfaces
     public interface IReportsRepository
     {
         Task<IEnumerable<ReportsCashMovementsDTO>> GetCashMovementsAsync(DateDTO date);
-
         Task<IEnumerable<OrdersListDTO>> GetOrdersDetailAsync(DateDTO date);
+        Task<IEnumerable<ReportsCardDTO>> GetInitialBalance(DateDTO date);
+        Task<IEnumerable<ReportsCardDTO>> GetInFlows(DateDTO date);
+        Task<IEnumerable<ReportsCardDTO>> GetOutFlows(DateDTO date);
+        Task<IEnumerable<ReportsCardDTO>> GetClosingBalance(DateDTO date);
+        Task<IEnumerable<ReportsCardNumDTO>> GetNumOfSales(DateDTO date);
+        Task<IEnumerable<ReportsCardDTO>> GetExpectedBalance(DateDTO date);
+        Task<IEnumerable<ReportsCardDTO>> GetAverageTicket(DateDTO date);
     }
 }

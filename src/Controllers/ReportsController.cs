@@ -30,5 +30,68 @@ namespace unipos_basic_backend.src.Controllers
             var result = await _reportsRep.GetOrdersDetailAsync(date);
             return Ok(result);
         }
+
+        [HttpPost("v1/get-initial-balance")]
+        public async Task<ActionResult<IEnumerable<ReportsCardDTO>>> GetInitialBalance([FromBody] DateDTO date)
+        {
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
+            
+            var result = await _reportsRep.GetInitialBalance(date);
+            return Ok(result);
+        }
+
+        [HttpPost("v1/get-inflows")]
+        public async Task<ActionResult<IEnumerable<ReportsCardDTO>>> GetInFlows([FromBody] DateDTO date)
+        {
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
+            
+            var result = await _reportsRep.GetInFlows(date);
+            return Ok(result);
+        }
+
+        [HttpPost("v1/get-outflows")]
+        public async Task<ActionResult<IEnumerable<ReportsCardDTO>>> GetOutFlows([FromBody] DateDTO date)
+        {
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
+            
+            var result = await _reportsRep.GetOutFlows(date);
+            return Ok(result);
+        }
+
+        [HttpPost("v1/get-closing-balance")]
+        public async Task<ActionResult<IEnumerable<ReportsCardDTO>>> GetClosingBalance([FromBody] DateDTO date)
+        {
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
+            
+            var result = await _reportsRep.GetClosingBalance(date);
+            return Ok(result);
+        }
+
+        [HttpPost("v1/get-num-of-sales")]
+        public async Task<ActionResult<IEnumerable<ReportsCardNumDTO>>> GetNumOfSales([FromBody] DateDTO date)
+        {
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
+            
+            var result = await _reportsRep.GetNumOfSales(date);
+            return Ok(result);
+        }
+
+        [HttpPost("v1/get-expected-balance")]
+        public async Task<ActionResult<IEnumerable<ReportsCardDTO>>> GetExpectedBalance([FromBody] DateDTO date)
+        {
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
+            
+            var result = await _reportsRep.GetExpectedBalance(date);
+            return Ok(result);
+        }
+
+        [HttpPost("v1/get-average-ticket")]
+        public async Task<ActionResult<IEnumerable<ReportsCardDTO>>> GetAverageTicket([FromBody] DateDTO date)
+        {
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
+            
+            var result = await _reportsRep.GetAverageTicket(date);
+            return Ok(result);
+        }
     }
 }
