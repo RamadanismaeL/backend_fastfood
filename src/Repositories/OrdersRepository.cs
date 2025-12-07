@@ -72,7 +72,7 @@ namespace unipos_basic_backend.src.Repositories
 
                 -- Descrição dos itens
                 LEFT JOIN LATERAL (
-                    SELECT STRING_AGG(qtd_nome, ' • ' ORDER BY qtd_nome) AS descricao
+                    SELECT STRING_AGG(qtd_nome, ' + ' ORDER BY qtd_nome) AS descricao
                     FROM (
                         SELECT DISTINCT
                             o.quantity || ' × ' || p.item_name AS qtd_nome
@@ -142,7 +142,7 @@ namespace unipos_basic_backend.src.Repositories
                 ) payments ON TRUE
 
                 LEFT JOIN LATERAL (
-                    SELECT STRING_AGG(qtd_nome, ' • ' ORDER BY qtd_nome) AS descricao
+                    SELECT STRING_AGG(qtd_nome, ' + ' ORDER BY qtd_nome) AS descricao
                     FROM (
                         SELECT DISTINCT
                             o.quantity || ' × ' || p.item_name AS qtd_nome

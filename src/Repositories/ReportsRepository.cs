@@ -54,7 +54,6 @@ namespace unipos_basic_backend.src.Repositories
                 INNER JOIN tbUsers u ON u.id = cr.user_id
                 INNER JOIN tbCustomers c ON c.sales_id = s.id
 
-                -- Totais dos itens
                 CROSS JOIN LATERAL (
                     SELECT
                         SUM(o.quantity)     AS total_qty,
@@ -65,7 +64,6 @@ namespace unipos_basic_backend.src.Repositories
                         AND o.created_at::DATE = @Date::DATE
                 ) items
 
-                -- Total pago
                 LEFT JOIN LATERAL (
                     SELECT SUM(total_paid) AS total_paid
                     FROM tbPaymentSales ps
@@ -73,9 +71,8 @@ namespace unipos_basic_backend.src.Repositories
                         AND ps.is_paid = TRUE
                 ) payments ON TRUE
 
-                -- Descrição dos itens
                 LEFT JOIN LATERAL (
-                    SELECT STRING_AGG(qtd_nome, ' • ' ORDER BY qtd_nome) AS descricao
+                    SELECT STRING_AGG(qtd_nome, ' + ' ORDER BY qtd_nome) AS descricao
                     FROM (
                         SELECT DISTINCT
                             o.quantity || ' × ' || p.item_name AS qtd_nome
