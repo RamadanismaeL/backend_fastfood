@@ -102,5 +102,14 @@ namespace unipos_basic_backend.src.Controllers
             var result = await _reportsRep.GetPymtMethod(date);
             return Ok(result);
         }
+
+        [HttpPost("v1/get-chart-sales-per-hour")]
+        public async Task<ActionResult<IEnumerable<ChartAreaReportDTO>>> GetChartSalesPerHour([FromBody] DateDTO date)
+        {
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
+            
+            var result = await _reportsRep.GetChartSalesPerHour(date);
+            return Ok(result);
+        }
     }
 }

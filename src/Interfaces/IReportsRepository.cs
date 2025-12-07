@@ -14,5 +14,6 @@ namespace unipos_basic_backend.src.Interfaces
         Task<IEnumerable<ReportsCardDTO>> GetExpectedBalance(DateDTO date);
         Task<IEnumerable<ReportsCardDTO>> GetAverageTicket(DateDTO date);
         Task<IEnumerable<CarouselPymtMethodDTO>> GetPymtMethod(DateDTO date);
+        Task<IEnumerable<ChartAreaReportDTO>> GetChartSalesPerHour(DateDTO date);
     }
 }

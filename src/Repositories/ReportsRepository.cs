@@ -800,5 +800,25 @@ namespace unipos_basic_backend.src.Repositories
 
             return [parameters];
         }
+
+        public async Task<IEnumerable<ChartAreaReportDTO>> GetChartSalesPerHour(DateDTO date)
+        {
+            const string sql = @"
+                SELECT
+                    ARRAY_AGG(total_to_pay ORDER BY created_at) AS Amounts,
+                    ARRAY_AGG(
+                        to_char(created_at, 'HH24:MI')
+                        ORDER BY created_at
+                    ) AS Date
+                FROM tbOrders
+                WHERE is_available = TRUE
+                AND status = 'paid'
+                AND created_at::DATE = @Date::DATE";
+
+            await using var conn = _db.CreateConnection();
+            var result = await conn.QuerySingleOrDefaultAsync<ChartAreaReportDTO>(sql, new { date.Date });
+
+            return result is null ? [] : new [] { result };
+        }
     }
 }
