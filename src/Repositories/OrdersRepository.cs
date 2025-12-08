@@ -247,8 +247,8 @@ namespace unipos_basic_backend.src.Repositories
                         var currentStock = await conn.ExecuteScalarAsync<decimal>(
                             sqlCheckStock, new { IngredientId = ing.IngredientId }, tx);
 
-                        if (currentStock < qtyNeeded)
-                            return ResponseDTO.Failure($"Insufficient stock for ingredient {ing.ItemName}. Required: {qtyNeeded}, Available: {currentStock}");
+                        if (currentStock < qtyNeeded) return ResponseDTO.Failure(MessagesConstant.InsufIngredient);
+                            //return ResponseDTO.Failure($"Insufficient stock for ingredient {ing.ItemName}. Required: {qtyNeeded}, Available: {currentStock}");
 
                         await conn.ExecuteAsync(
                             sqlConsumeStock,
@@ -403,7 +403,7 @@ namespace unipos_basic_backend.src.Repositories
                             sqlCheckStock, new { ing.IngredientId }, tx);
 
                         if (currentStock < qtyNeeded)
-                            return ResponseDTO.Failure($"Insufficient stock for ingredient {ing.ItemName}. Required: {qtyNeeded}, Available: {currentStock}");
+                            return ResponseDTO.Failure(MessagesConstant.InsufIngredient);
 
                         await conn.ExecuteAsync(
                             sqlConsumeStock,

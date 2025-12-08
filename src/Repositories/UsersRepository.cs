@@ -78,7 +78,7 @@ namespace unipos_basic_backend.src.Repositories
                 const string checkSql = @"SELECT 1 FROM tbUsers WHERE username = @Username";
                 var userExists = await conn.QueryFirstOrDefaultAsync<int>(checkSql, new { user.Username });
 
-                if (userExists == 1) return new ResponseDTO { IsSuccess = false, Message = "Username already exists." };
+                if (userExists == 1) return ResponseDTO.Failure(MessagesConstant.AlreadyExists);
 
                 const string insertSql = @"INSERT INTO tbUsers (id, username, phone_number, roles, password_hash, images) VALUES (@Id, @Username, @PhoneNumber, @Roles, @Password, @Image)";
 

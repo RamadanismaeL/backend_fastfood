@@ -2,24 +2,25 @@ namespace unipos_basic_backend.src.Constants
 {
     public static class MessagesConstant
     {
-        public const string Saved       = "Record saved successfully.";
-        public const string Created     = "Record created successfully.";
-        public const string Updated     = "Record updated successfully.";
-        public const string Deleted     = "Record deleted successfully.";
+        public const string Saved       = "SERVER_MESSAGES.RECORD_SAVED_SUCCESS";
+        public const string Created     = "SERVER_MESSAGES.RECORD_CREATED_SUCCESS";
+        public const string Updated     = "SERVER_MESSAGES.RECORD_UPDATED_SUCCESS";
+        public const string Deleted     = "SERVER_MESSAGES.RECORD_DELETED_SUCCESS";
         
-        public const string AlreadyExists = "This record already exists.";
-        public const string NotFound       = "The requested record could not be found.";
-        public const string NoChanges      = "No changes were detected.";     
-        public const string InvalidData    = "Please correct the highlighted errors and try again.";
+        public const string AlreadyExists = "SERVER_MESSAGES.RECORD_ALREADY_EXISTS";
+        public const string NotFound       = "SERVER_MESSAGES.RECORD_NOT_FOUND";
+        public const string NoChanges      = "SERVER_MESSAGES.NO_CHANGES_DETECTED";     
+        public const string InvalidData    = "SERVER_MESSAGES.CORRECT_HIGHLIGHTED_ERRORS";
 
-        public const string OperationFailed = "The operation could not be completed. Please try again.";
+        public const string OperationFailed = "SERVER_MESSAGES.OPERATION_FAILED";
 
-        public const string CashOpened = "Cash register successfully opened. You may start processing sales.";
-        public const string CashOpenedError = "You already have an open cash register. Close the current one before opening a new one.";
-        public const string CashClosed = "Cash register closed successfully. Thank you for completing your shift.";
+        public const string CashOpened = "SERVER_MESSAGES.CASH_REGISTER_OPENED";
+        public const string CashOpenedError = "SERVER_MESSAGES.CASH_REGISTER_ALREADY_OPEN";
+        public const string CashClosed = "SERVER_MESSAGES.CASH_REGISTER_CLOSED";
+        public const string InsufIngredient = "SERVER_MESSAGES.INSUFFICIENT_INGREDIENT";
 
-        public const string ServerError     = "An unexpected error occurred.";
-        public const string Unauthorized    = "You are not authorised to perform this action.";
-        public const string Forbidden       = "Access to this resource is forbidden.";        
+        public const string ServerError     = "SERVER_MESSAGES.UNEXPECTED_ERROR";
+        public const string Unauthorized    = "SERVER_MESSAGES.UNAUTHORISED_ACTION";
+        public const string Forbidden       = "SERVER_MESSAGES.ACCESS_FORBIDDEN";        
     }
 }
