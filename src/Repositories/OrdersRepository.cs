@@ -75,7 +75,7 @@ namespace unipos_basic_backend.src.Repositories
                     SELECT STRING_AGG(qtd_nome, ' + ' ORDER BY qtd_nome) AS descricao
                     FROM (
                         SELECT DISTINCT
-                            o.quantity || ' × ' || p.item_name AS qtd_nome
+                            o.quantity || 'X ' || p.item_name AS qtd_nome
                         FROM tbOrders o
                         JOIN tbProducts p ON p.id = o.product_id
                         WHERE o.sales_id = s.id
@@ -145,7 +145,7 @@ namespace unipos_basic_backend.src.Repositories
                     SELECT STRING_AGG(qtd_nome, ' + ' ORDER BY qtd_nome) AS descricao
                     FROM (
                         SELECT DISTINCT
-                            o.quantity || ' × ' || p.item_name AS qtd_nome
+                            o.quantity || 'X ' || p.item_name AS qtd_nome
                         FROM tbOrders o
                         JOIN tbProducts p ON p.id = o.product_id
                         WHERE o.sales_id = s.id
