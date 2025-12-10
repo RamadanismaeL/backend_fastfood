@@ -87,8 +87,7 @@ namespace unipos_basic_backend.src.Repositories
                     ON o.sales_id = s.id 
                 AND o.status IN ('pending', 'paid')
 
-                WHERE cr.is_opened = TRUE
-                AND crd.date_time::DATE = @Date::DATE
+                WHERE crd.date_time::DATE = @Date::DATE
                 GROUP BY 
                     s.id,
                     items.total_qty,
@@ -816,6 +815,79 @@ namespace unipos_basic_backend.src.Repositories
             var result = await conn.QuerySingleOrDefaultAsync<ChartAreaReportDTO>(sql, new { date.Date });
 
             return result is null ? [] : new [] { result };
+        }
+
+        public async Task<IEnumerable<ReportsCardRecentSaleDTO>> GetRecentSale(DateDTO date)
+        {
+            const string sql = @"
+                SELECT
+                    s.id AS Id,
+                    order_info.order_number AS OrderNumber,
+                    payments.methods        AS Methods,
+                    COALESCE(items.total_to_pay, 0.00)     AS TotalPay,
+                    COALESCE(produtos.descricao, 'Sem itens') AS Description,
+                    c.fullName AS CustomerName,
+                    payments.last_payment_at AS Time
+
+                FROM tbSales s
+                INNER JOIN tbCashRegister cr         ON cr.id = s.cash_register_id
+                INNER JOIN tbCashRegisterDetails crd ON crd.cash_register_id = cr.id
+                INNER JOIN tbCustomers c             ON c.sales_id = s.id
+
+                LEFT JOIN LATERAL (
+                    SELECT 
+                        o.order_number
+                    FROM tbOrders o
+                    WHERE o.sales_id = s.id
+                    AND o.status = 'paid'
+                    ORDER BY o.created_at DESC
+                    LIMIT 1
+                ) order_info ON TRUE
+
+                LEFT JOIN LATERAL (
+                    SELECT SUM(o.total_to_pay) AS total_to_pay
+                    FROM tbOrders o
+                    WHERE o.sales_id = s.id
+                    AND o.status = 'paid'
+                ) items ON TRUE
+
+                LEFT JOIN LATERAL (
+                    SELECT 
+                        ARRAY_AGG(ps.method ORDER BY ps.created_at) AS methods,
+                        TO_CHAR(MAX(ps.created_at), 'HH24:MI') AS last_payment_at
+                    FROM tbPaymentSales ps
+                    WHERE ps.sales_id = s.id
+                    AND ps.is_paid = TRUE
+                    AND ps.created_at::DATE = @Date::DATE
+                ) payments ON TRUE
+
+                LEFT JOIN LATERAL (
+                    SELECT STRING_AGG(qtd_nome, ' + ' ORDER BY qtd_nome) AS descricao
+                    FROM (
+                        SELECT DISTINCT
+                            o.quantity || 'X ' || p.item_name AS qtd_nome
+                        FROM tbOrders o
+                        JOIN tbProducts p ON p.id = o.product_id
+                        WHERE o.sales_id = s.id
+                        AND o.status = 'paid'
+                    ) sub
+                ) produtos ON TRUE
+
+                WHERE payments.last_payment_at IS NOT NULL
+
+                GROUP BY 
+                    s.id,
+                    order_info.order_number,
+                    items.total_to_pay,
+                    payments.methods,
+                    payments.last_payment_at,
+                    produtos.descricao,
+                    c.fullName
+
+                ORDER BY order_info.order_number DESC NULLS LAST;";
+
+            await using var conn = _db.CreateConnection();
+            return (await conn.QueryAsync<ReportsCardRecentSaleDTO>(sql, new { date.Date })).AsList();
         }
     }
 }

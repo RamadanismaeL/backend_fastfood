@@ -448,7 +448,7 @@ namespace unipos_basic_backend.src.Repositories
             {
                 await using var conn = _db.CreateConnection();
 
-                const string sql = @"SELECT COUNT(*) AS Total FROM tbSales";
+                const string sql = @"SELECT order_number FROM tbOrders ORDER BY created_at DESC LIMIT 1;";
 
                 var result = await conn.QueryFirstOrDefaultAsync<int>(sql);
 

@@ -111,5 +111,14 @@ namespace unipos_basic_backend.src.Controllers
             var result = await _reportsRep.GetChartSalesPerHour(date);
             return Ok(result);
         }
+
+        [HttpPost("v1/get-recent-sales")]
+        public async Task<ActionResult<IEnumerable<ReportsCardRecentSaleDTO>>> GetRecentSale([FromBody] DateDTO date)
+        {
+            if (!ModelState.IsValid) return BadRequest(ResponseDTO.Failure(MessagesConstant.InvalidData));
+            
+            var result = await _reportsRep.GetRecentSale(date);
+            return Ok(result);
+        }
     }
 }
